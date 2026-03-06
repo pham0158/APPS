@@ -23,7 +23,7 @@ jobs:
           npm install
           npm run build
           mkdir -p deploy
-          cp home.html deploy/index.html
+          cp index.html deploy/index.html
           cp -r dist deploy/pickleball
 
       - name: Deploy to GitHub Pages
