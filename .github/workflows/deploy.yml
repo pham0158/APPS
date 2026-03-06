@@ -18,12 +18,12 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install & Build
+      - name: Install & Build V2
         run: |
           npm install
           npm run build
-          mkdir -p deploy/pickleball
-          cp -r dist/. deploy/pickleball/
+          mkdir -p deploy/pickleball-v2
+          cp -r dist/. deploy/pickleball-v2/
           cp homepage.html deploy/index.html
 
       - name: Deploy to GitHub Pages
@@ -31,3 +31,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./deploy
+          keep_files: true
