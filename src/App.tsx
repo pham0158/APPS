@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, deleteDoc, onSnapshot } from "firebase/firestore";
+import { getFirestore, doc, setDoc, collection, deleteDoc, onSnapshot } from "firebase/firestore";
 
 // Firebase config
 const firebaseConfig = {
