@@ -1,693 +1,1308 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GoGreenVue — Make Dreams Possible</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, setDoc, collection, deleteDoc, onSnapshot } from "firebase/firestore";
 
-    :root {
-      --green-deep: #0d2b1a;
-      --green-mid: #1a4a2e;
-      --green-bright: #2d7a4a;
-      --green-light: #4aaa6a;
-      --green-pale: #c8e6d0;
-      --green-mist: #e8f5ec;
-      --gold: #c9a84c;
-      --gold-light: #e8c97a;
-      --white: #f7f9f7;
-      --text: #0d2b1a;
-    }
+// EmailJS config
+const EMAILJS_SERVICE_ID  = "service_5tdfzpt";
+const EMAILJS_TEMPLATE_ID = "template_mxauaq9";
+const EMAILJS_PUBLIC_KEY  = "YOUR_PUBLIC_KEY"; // ← paste from EmailJS Account page
+const FEEDBACK_EMAIL      = "gogreenvue@gmail.com";
 
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: var(--white);
-      color: var(--text);
-      overflow-x: hidden;
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24px 48px;
-      mix-blend-mode: normal;
-      transition: background 0.4s, padding 0.4s;
-    }
-    nav.scrolled {
-      background: rgba(13, 43, 26, 0.95);
-      backdrop-filter: blur(12px);
-      padding: 16px 48px;
-    }
-    .nav-logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 22px;
-      font-weight: 600;
-      color: var(--white);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-decoration: none;
-    }
-    .nav-links {
-      display: flex;
-      gap: 36px;
-      list-style: none;
-    }
-    .nav-links a {
-      color: rgba(247, 249, 247, 0.8);
-      text-decoration: none;
-      font-size: 13px;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    .nav-links a:hover { color: var(--gold-light); }
-
-    /* ── HERO ── */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background: var(--green-deep);
-    }
-
-    /* Layered background */
-    .hero-bg {
-      position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(ellipse 80% 60% at 20% 50%, rgba(45, 122, 74, 0.3) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 80% at 80% 30%, rgba(26, 74, 46, 0.5) 0%, transparent 60%),
-        radial-gradient(ellipse 40% 40% at 60% 80%, rgba(201, 168, 76, 0.1) 0%, transparent 50%),
-        linear-gradient(160deg, #0a1f12 0%, #0d2b1a 40%, #122b1d 100%);
-    }
-
-    /* Floating leaves */
-    .leaves {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      overflow: hidden;
-    }
-    .leaf {
-      position: absolute;
-      opacity: 0.06;
-      animation: float linear infinite;
-    }
-    .leaf svg { fill: var(--green-light); }
-
-    @keyframes float {
-      0% { transform: translateY(110vh) rotate(0deg); opacity: 0; }
-      10% { opacity: 0.06; }
-      90% { opacity: 0.06; }
-      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
-    }
-
-    /* Grid texture overlay */
-    .hero-grid {
-      position: absolute;
-      inset: 0;
-      background-image:
-        linear-gradient(rgba(200, 230, 208, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(200, 230, 208, 0.03) 1px, transparent 1px);
-      background-size: 60px 60px;
-    }
-
-    .hero-content {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      padding: 0 24px;
-      max-width: 900px;
-    }
-
-    .hero-eyebrow {
-      font-size: 11px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--gold);
-      font-weight: 500;
-      margin-bottom: 28px;
-      opacity: 0;
-      animation: fadeUp 0.8s ease 0.3s forwards;
-    }
-
-    .hero-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(56px, 9vw, 110px);
-      font-weight: 300;
-      line-height: 1.0;
-      color: var(--white);
-      letter-spacing: -1px;
-      margin-bottom: 12px;
-      opacity: 0;
-      animation: fadeUp 0.8s ease 0.5s forwards;
-    }
-
-    .hero-title em {
-      font-style: italic;
-      color: var(--green-pale);
-    }
-
-    .hero-subtitle {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(28px, 4vw, 48px);
-      font-weight: 300;
-      font-style: italic;
-      color: var(--gold-light);
-      margin-bottom: 40px;
-      opacity: 0;
-      animation: fadeUp 0.8s ease 0.7s forwards;
-    }
-
-    .hero-desc {
-      font-size: 16px;
-      color: rgba(200, 230, 208, 0.7);
-      line-height: 1.8;
-      max-width: 480px;
-      margin: 0 auto 52px;
-      font-weight: 300;
-      opacity: 0;
-      animation: fadeUp 0.8s ease 0.9s forwards;
-    }
-
-    .hero-cta {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      flex-wrap: wrap;
-      opacity: 0;
-      animation: fadeUp 0.8s ease 1.1s forwards;
-    }
-
-    .btn-primary {
-      background: var(--gold);
-      color: var(--green-deep);
-      padding: 16px 40px;
-      border-radius: 2px;
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      transition: background 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-    .btn-primary:hover {
-      background: var(--gold-light);
-      transform: translateY(-2px);
-    }
-
-    .btn-outline {
-      border: 1px solid rgba(200, 230, 208, 0.4);
-      color: var(--green-pale);
-      padding: 16px 40px;
-      border-radius: 2px;
-      text-decoration: none;
-      font-size: 12px;
-      font-weight: 500;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      transition: border-color 0.2s, color 0.2s, transform 0.2s;
-      display: inline-block;
-    }
-    .btn-outline:hover {
-      border-color: var(--gold);
-      color: var(--gold-light);
-      transform: translateY(-2px);
-    }
-
-    /* Scroll indicator */
-    .scroll-hint {
-      position: absolute;
-      bottom: 40px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      color: rgba(200, 230, 208, 0.4);
-      font-size: 10px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      animation: fadeUp 1s ease 1.5s both;
-    }
-    .scroll-line {
-      width: 1px;
-      height: 48px;
-      background: linear-gradient(to bottom, rgba(200, 230, 208, 0.4), transparent);
-      animation: scrollPulse 2s ease-in-out infinite;
-    }
-    @keyframes scrollPulse {
-      0%, 100% { opacity: 0.4; transform: scaleY(1); }
-      50% { opacity: 1; transform: scaleY(1.2); }
-    }
-
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── MARQUEE ── */
-    .marquee-section {
-      background: var(--green-mid);
-      padding: 20px 0;
-      overflow: hidden;
-      border-top: 1px solid rgba(74, 170, 106, 0.2);
-      border-bottom: 1px solid rgba(74, 170, 106, 0.2);
-    }
-    .marquee-track {
-      display: flex;
-      gap: 0;
-      animation: marquee 30s linear infinite;
-      width: max-content;
-    }
-    .marquee-item {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-      padding: 0 40px;
-      font-size: 11px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: rgba(200, 230, 208, 0.6);
-      font-weight: 500;
-      white-space: nowrap;
-    }
-    .marquee-dot {
-      width: 4px; height: 4px;
-      border-radius: 50%;
-      background: var(--gold);
-      flex-shrink: 0;
-    }
-    @keyframes marquee {
-      from { transform: translateX(0); }
-      to { transform: translateX(-50%); }
-    }
-
-    /* ── FEATURES ── */
-    .features {
-      padding: 120px 48px;
-      background: var(--white);
-    }
-    .section-header {
-      text-align: center;
-      margin-bottom: 80px;
-    }
-    .section-label {
-      font-size: 10px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--green-bright);
-      font-weight: 500;
-      margin-bottom: 20px;
-    }
-    .section-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(36px, 5vw, 58px);
-      font-weight: 300;
-      color: var(--green-deep);
-      line-height: 1.1;
-    }
-    .section-title em {
-      font-style: italic;
-      color: var(--green-bright);
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 2px;
-      max-width: 1100px;
-      margin: 0 auto;
-      background: var(--green-pale);
-    }
-    .feature-card {
-      background: var(--white);
-      padding: 52px 40px;
-      transition: background 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-    .feature-card::before {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0;
-      width: 0; height: 3px;
-      background: var(--gold);
-      transition: width 0.4s ease;
-    }
-    .feature-card:hover { background: var(--green-mist); }
-    .feature-card:hover::before { width: 100%; }
-
-    .feature-num {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 64px;
-      font-weight: 300;
-      color: var(--green-pale);
-      line-height: 1;
-      margin-bottom: 24px;
-      transition: color 0.3s;
-    }
-    .feature-card:hover .feature-num { color: var(--green-bright); opacity: 0.3; }
-
-    .feature-icon {
-      font-size: 32px;
-      margin-bottom: 20px;
-    }
-    .feature-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 24px;
-      font-weight: 600;
-      color: var(--green-deep);
-      margin-bottom: 14px;
-    }
-    .feature-desc {
-      font-size: 14px;
-      color: #5a7a65;
-      line-height: 1.8;
-      font-weight: 300;
-    }
-
-    /* ── PICKLEBALL CTA ── */
-    .pickleball-section {
-      background: var(--green-deep);
-      padding: 100px 48px;
-      position: relative;
-      overflow: hidden;
-    }
-    .pickleball-section::before {
-      content: '🥒';
-      position: absolute;
-      font-size: 300px;
-      right: -40px;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: 0.05;
-      pointer-events: none;
-    }
-    .pickleball-inner {
-      max-width: 700px;
-      position: relative;
-      z-index: 1;
-    }
-    .pickleball-label {
-      font-size: 10px;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 24px;
-    }
-    .pickleball-title {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: clamp(36px, 5vw, 60px);
-      font-weight: 300;
-      color: var(--white);
-      line-height: 1.1;
-      margin-bottom: 24px;
-    }
-    .pickleball-desc {
-      font-size: 15px;
-      color: rgba(200, 230, 208, 0.7);
-      line-height: 1.8;
-      margin-bottom: 40px;
-      font-weight: 300;
-      max-width: 480px;
-    }
-
-    /* ── FOOTER ── */
-    footer {
-      background: #070f0a;
-      padding: 60px 48px 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      border-top: 1px solid rgba(74, 170, 106, 0.1);
-    }
-    .footer-logo {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 28px;
-      font-weight: 300;
-      color: var(--white);
-      letter-spacing: 4px;
-      text-transform: uppercase;
-    }
-    .footer-tagline {
-      font-size: 12px;
-      color: rgba(200, 230, 208, 0.4);
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
-    .footer-divider {
-      width: 60px;
-      height: 1px;
-      background: var(--gold);
-      opacity: 0.4;
-    }
-    .footer-copy {
-      font-size: 11px;
-      color: rgba(200, 230, 208, 0.3);
-      letter-spacing: 1px;
-    }
-
-    /* ── RESPONSIVE ── */
-    @media (max-width: 768px) {
-      nav { padding: 20px 24px; }
-      nav.scrolled { padding: 14px 24px; }
-      .nav-links { display: none; }
-      .features { padding: 80px 24px; }
-      .pickleball-section { padding: 80px 24px; }
-      footer { padding: 48px 24px 32px; }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- NAV -->
-  <nav id="navbar">
-    <a href="/" class="nav-logo">GoGreenVue</a>
-    <ul class="nav-links">
-      <li><a href="#about">About</a></li>
-      <li><a href="#features">Releases</a></li>
-      <li><a href="/pickleball-v3" style="color:var(--green-light);">🥒 Pickleball V3</a></li>
-    </ul>
-  </nav>
-
-  <!-- HERO -->
-  <section class="hero">
-    <div class="hero-bg"></div>
-    <div class="hero-grid"></div>
-
-    <!-- Floating leaves -->
-    <div class="leaves">
-      <div class="leaf" style="left:10%;animation-duration:18s;animation-delay:0s;font-size:40px;">
-        <svg viewBox="0 0 100 100" width="40" height="40"><ellipse cx="50" cy="50" rx="20" ry="45" transform="rotate(30 50 50)"/></svg>
-      </div>
-      <div class="leaf" style="left:25%;animation-duration:22s;animation-delay:4s;font-size:30px;">
-        <svg viewBox="0 0 100 100" width="30" height="30"><ellipse cx="50" cy="50" rx="18" ry="40" transform="rotate(-20 50 50)"/></svg>
-      </div>
-      <div class="leaf" style="left:50%;animation-duration:16s;animation-delay:8s;">
-        <svg viewBox="0 0 100 100" width="50" height="50"><ellipse cx="50" cy="50" rx="22" ry="48" transform="rotate(10 50 50)"/></svg>
-      </div>
-      <div class="leaf" style="left:70%;animation-duration:20s;animation-delay:2s;">
-        <svg viewBox="0 0 100 100" width="35" height="35"><ellipse cx="50" cy="50" rx="16" ry="42" transform="rotate(-40 50 50)"/></svg>
-      </div>
-      <div class="leaf" style="left:85%;animation-duration:25s;animation-delay:6s;">
-        <svg viewBox="0 0 100 100" width="28" height="28"><ellipse cx="50" cy="50" rx="20" ry="44" transform="rotate(55 50 50)"/></svg>
-      </div>
-    </div>
-
-    <div class="hero-content">
-      <p class="hero-eyebrow">Welcome to GoGreenVue</p>
-      <h1 class="hero-title">Make <em>Dreams</em><br>Possible</h1>
-      <p class="hero-subtitle">One step at a time.</p>
-      <p class="hero-desc">A space where ideas grow, communities connect, and every vision finds its path forward.</p>
-      <div class="hero-cta">
-        <a href="#about" class="btn-primary">Explore</a>
-        <a href="/pickleball-v3" class="btn-outline" style="border-color:var(--green-light);color:var(--green-light);">🥒 Pickleball V3 — Latest</a>
-      </div>
-    </div>
-
-    <div class="scroll-hint">
-      <div class="scroll-line"></div>
-      <span>Scroll</span>
-    </div>
-  </section>
-
-  <!-- MARQUEE -->
-  <div class="marquee-section">
-    <div class="marquee-track">
-      <div class="marquee-item"><span>Make Dreams Possible</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>GoGreenVue</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>Grow Together</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>One Step at a Time</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>Dream Big</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>GoGreenVue</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>Make Dreams Possible</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>GoGreenVue</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>Grow Together</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>One Step at a Time</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>Dream Big</span><div class="marquee-dot"></div></div>
-      <div class="marquee-item"><span>GoGreenVue</span><div class="marquee-dot"></div></div>
-    </div>
-  </div>
-
-  <!-- FEATURES -->
-  <section class="features" id="about">
-    <div class="section-header">
-      <p class="section-label">Our Vision</p>
-      <h2 class="section-title">A place where<br><em>everything begins</em></h2>
-    </div>
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-num">01</div>
-        <div class="feature-icon">🌱</div>
-        <h3 class="feature-title">Grow</h3>
-        <p class="feature-desc">Every great journey starts with a single seed. We believe in nurturing ideas from the ground up, giving them the space and support to flourish.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-num">02</div>
-        <div class="feature-icon">🤝</div>
-        <h3 class="feature-title">Connect</h3>
-        <p class="feature-desc">Dreams are built together. We bring people, tools, and opportunities into one space to create something greater than the sum of its parts.</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-num">03</div>
-        <div class="feature-icon">✨</div>
-        <h3 class="feature-title">Achieve</h3>
-        <p class="feature-desc">From vision to reality — we provide the tools and community to turn what seems impossible into something you can touch, see, and share.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- PICKLEBALL CTA -->
-  <section class="pickleball-section" id="features">
-    <div class="pickleball-inner" style="max-width:900px;">
-      <p class="pickleball-label">Community · Sport · Fun</p>
-      <h2 class="pickleball-title">Play Pickleball<br>with your community</h2>
-      <p class="pickleball-desc">Organize round-robin tournaments effortlessly. Manage players, courts, scores, and leaderboards — all in one place.</p>
-
-      <!-- Version cards -->
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:56px;">
-
-        <!-- V1 -->
-        <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(200,230,208,0.12);border-radius:8px;padding:24px;flex:1;min-width:200px;">
-          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(200,230,208,0.4);margin-bottom:10px;">Version 1 · Stable</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);margin-bottom:8px;">Classic</div>
-          <div style="font-size:12px;color:rgba(200,230,208,0.5);line-height:1.7;margin-bottom:20px;">Players, courts, rounds &amp; leaderboard. Simple and reliable.</div>
-          <a href="/pickleball" class="btn-outline" style="font-size:11px;padding:10px 22px;">Launch V1 →</a>
-        </div>
-
-        <!-- V2 -->
-        <div style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:24px;flex:1;min-width:200px;">
-          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:10px;">Version 2 · Firebase</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);margin-bottom:8px;">Live Sync</div>
-          <div style="font-size:12px;color:rgba(200,230,208,0.5);line-height:1.7;margin-bottom:20px;">Real-time shared data across all devices. Tournament history saved forever.</div>
-          <a href="/pickleball-v2" class="btn-outline" style="font-size:11px;padding:10px 22px;border-color:var(--gold);color:var(--gold-light);">Launch V2 →</a>
-        </div>
-
-        <!-- V3 -->
-        <div style="background:rgba(74,158,74,0.08);border:1px solid rgba(74,158,74,0.35);border-radius:8px;padding:24px;flex:1;min-width:200px;position:relative;">
-          <div style="position:absolute;top:-11px;left:20px;background:var(--green-bright);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:20px;">Latest</div>
-          <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--green-light);margin-bottom:10px;">Version 3 · Multi-Group</div>
-          <div style="font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--white);margin-bottom:8px;">Full Featured</div>
-          <div style="font-size:12px;color:rgba(200,230,208,0.5);line-height:1.7;margin-bottom:20px;">Groups per location, smarter pairings, private groups &amp; on-demand extra courts.</div>
-          <a href="/pickleball-v3" class="btn-primary" style="font-size:11px;padding:10px 22px;">Launch V3 →</a>
-        </div>
-      </div>
-
-      <!-- Release Notes -->
-      <div style="border-top:1px solid rgba(200,230,208,0.1);padding-top:40px;">
-        <p style="font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;">Release Notes</p>
-
-        <!-- V3 -->
-        <div style="display:flex;gap:20px;margin-bottom:32px;align-items:flex-start;">
-          <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:var(--green-bright);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;">V3</div>
-          <div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-              <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--white);">Multi-Group &amp; Smart Courts</div>
-              <span style="background:var(--green-bright);color:#fff;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px;">Mar 2026</span>
-            </div>
-            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> Create multiple groups for different locations playing simultaneously</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> Improved round-robin algorithm — minimizes repeated partners &amp; opponents</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> Private groups with password protection (stored securely in Firebase)</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> ⚡ "Next Game" button — instantly queues idle players on a free court mid-round</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> Sub-rounds labeled 2a, 2b… so history stays clean and traceable</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.65);display:flex;gap:8px;"><span style="color:var(--green-light);">+</span> Each group has its own color, location tag, and live tournament state</li>
-            </ul>
-          </div>
-        </div>
-
-        <div style="width:1px;height:20px;background:rgba(200,230,208,0.1);margin-left:24px;margin-bottom:12px;"></div>
-
-        <!-- V2 -->
-        <div style="display:flex;gap:20px;margin-bottom:32px;align-items:flex-start;">
-          <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:rgba(201,168,76,0.3);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:var(--gold);">V2</div>
-          <div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-              <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--white);">Firebase Live Sync</div>
-              <span style="background:rgba(201,168,76,0.2);color:var(--gold);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px;border:1px solid rgba(201,168,76,0.3);">Feb 2026</span>
-            </div>
-            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-              <li style="font-size:13px;color:rgba(200,230,208,0.5);display:flex;gap:8px;"><span style="color:var(--gold);">+</span> Connected to Firebase Firestore for real-time data sync</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.5);display:flex;gap:8px;"><span style="color:var(--gold);">+</span> All devices see the same players, scores &amp; leaderboard instantly</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.5);display:flex;gap:8px;"><span style="color:var(--gold);">+</span> Tournament history saved permanently to the cloud</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.5);display:flex;gap:8px;"><span style="color:var(--gold);">+</span> Player list auto-saved and shared across sessions</li>
-            </ul>
-          </div>
-        </div>
-
-        <div style="width:1px;height:20px;background:rgba(200,230,208,0.1);margin-left:24px;margin-bottom:12px;"></div>
-
-        <!-- V1 -->
-        <div style="display:flex;gap:20px;align-items:flex-start;">
-          <div style="flex-shrink:0;width:48px;height:48px;border-radius:50%;background:rgba(200,230,208,0.05);border:1px solid rgba(200,230,208,0.15);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:rgba(200,230,208,0.4);">V1</div>
-          <div>
-            <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
-              <div style="font-family:'Cormorant Garamond',serif;font-size:20px;color:rgba(255,255,255,0.5);">Initial Release</div>
-              <span style="background:rgba(200,230,208,0.05);color:rgba(200,230,208,0.3);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:1px;border:1px solid rgba(200,230,208,0.1);">Jan 2026</span>
-            </div>
-            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:6px;">
-              <li style="font-size:13px;color:rgba(200,230,208,0.35);display:flex;gap:8px;"><span>+</span> Round-robin tournament manager with up to 30 players</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.35);display:flex;gap:8px;"><span>+</span> Score entry, leaderboard, sit-out rotation</li>
-              <li style="font-size:13px;color:rgba(200,230,208,0.35);display:flex;gap:8px;"><span>+</span> Configurable number of courts (1–7)</li>
-            </ul>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-logo">GoGreenVue</div>
-    <div class="footer-tagline">Make Dreams Possible</div>
-    <div class="footer-divider"></div>
-    <div class="footer-copy">© 2026 GoGreenVue · gogreenvue.com</div>
-  </footer>
-
-  <script>
-    // Navbar scroll effect
-    const navbar = document.getElementById('navbar');
-    window.addEventListener('scroll', () => {
-      navbar.classList.toggle('scrolled', window.scrollY > 60);
+async function sendFeedbackEmail(params: {
+  subject: string; type: string; rating: string;
+  from_name: string; version: string; sent_at: string; message: string;
+}): Promise<boolean> {
+  try {
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE_ID,
+        template_id: EMAILJS_TEMPLATE_ID,
+        user_id: EMAILJS_PUBLIC_KEY,
+        template_params: {
+          email:     FEEDBACK_EMAIL,
+          subject:   params.subject,
+          type:      params.type,
+          rating:    params.rating,
+          from_name: params.from_name,
+          version:   params.version,
+          sent_at:   params.sent_at,
+          message:   params.message,
+        },
+      }),
     });
-  </script>
-</body>
-</html>
+    return res.ok;
+  } catch { return false; }
+}
+
+interface FeedbackEntry {
+  id: string;
+  type: "bug" | "feature" | "general";
+  rating: number;        // 0 = no rating
+  message: string;
+  name: string;          // optional submitter name
+  version: string;
+  submittedAt: string;
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAqBFWIzNZUHCz83lnHzjHcGYfbjICAgQM",
+  authDomain: "gogreenvue-afd10.firebaseapp.com",
+  projectId: "gogreenvue-afd10",
+  storageBucket: "gogreenvue-afd10.firebasestorage.app",
+  messagingSenderId: "968289098989",
+  appId: "1:968289098989:web:da82db1feca0a70f6e00e4"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+const MAX_PLAYERS = 30;
+const GROUP_COLORS = ["#2d6a2d","#2980b9","#8e44ad","#c0392b","#d35400","#16a085","#2c3e50","#b7950b"];
+
+const C = {
+  green: "#2d6a2d", greenMid: "#4a9e4a", greenLight: "#e8f5e8",
+  yellow: "#f5c518", yellowLight: "#fffbe6", dark: "#1a3a1a",
+  gray: "#f0f0f0", grayMid: "#ccc", red: "#c0392b",
+  blue: "#2980b9", purple: "#8e44ad", orange: "#d35400",
+};
+
+// Simple hash for password (not cryptographic, just obfuscation for privacy)
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+interface Player { name: string; id: string; }
+interface Court { courtNum: number; team1: string[]; team2: string[]; }
+
+// A SubRound is a mini-game generated mid-round for a specific court
+interface SubRound {
+  id: string;           // e.g. "r2_sub1"
+  parentRoundIdx: number;
+  subLabel: string;     // e.g. "2a", "2b"
+  court: Court;
+  sitOuts: string[];    // players who sit this sub-round
+}
+
+interface Round {
+  courts: Court[];
+  sitOuts: string[];
+  roundNum: number;
+  subRounds?: SubRound[];
+}
+
+interface Score { s1: string; s2: string; done: boolean; }
+interface Stats { id: string; name: string; wins: number; points: number; played: number; }
+
+interface TournamentState {
+  started: boolean;
+  rounds: Round[];
+  scores: Record<string, Score>;
+  currentRound: number;
+  subScores: Record<string, Score>; // keyed by subRound.id
+}
+
+interface Group {
+  id: string;
+  name: string;
+  location: string;
+  color: string;
+  players: Player[];
+  numCourts: number;
+  isPrivate: boolean;
+  passwordHash?: string;
+  tournament?: TournamentState;
+}
+
+interface SavedTournament {
+  id: string; date: string; groupId: string; groupName: string; location: string;
+  isPrivate: boolean;
+  players: Player[]; rounds: Round[]; scores: Record<string,Score>;
+  subScores: Record<string,Score>;
+  leaderboard: Stats[];
+}
+
+// ── PARTNER-AWARE ROUND GENERATION ─────────────────────────────────────────
+const pk = (a: string, b: string) => a < b ? `${a}|${b}` : `${b}|${a}`;
+const incMap = (map: Record<string,number>, a: string, b: string) => { const k=pk(a,b); map[k]=(map[k]||0)+1; };
+const getMap = (map: Record<string,number>, a: string, b: string) => map[pk(a,b)]||0;
+
+function scoreAssignment(
+  t1: [string,string], t2: [string,string],
+  partnerCount: Record<string,number>, opponentCount: Record<string,number>
+): number {
+  return getMap(partnerCount, t1[0], t1[1]) * 4 +
+         getMap(partnerCount, t2[0], t2[1]) * 4 +
+         getMap(opponentCount, t1[0], t2[0]) +
+         getMap(opponentCount, t1[0], t2[1]) +
+         getMap(opponentCount, t1[1], t2[0]) +
+         getMap(opponentCount, t1[1], t2[1]);
+}
+
+function bestCourtFromPool(
+  pool: string[], courtNum: number,
+  partnerCount: Record<string,number>, opponentCount: Record<string,number>
+): Court | null {
+  const candidates = pool.slice(0, Math.min(8, pool.length));
+  let bestScore = Infinity;
+  let bestCourt: Court | null = null;
+  for (let i = 0; i < candidates.length - 3; i++) {
+    for (let j = i+1; j < candidates.length - 2; j++) {
+      for (let k = j+1; k < candidates.length - 1; k++) {
+        for (let l = k+1; l < candidates.length; l++) {
+          const four = [candidates[i], candidates[j], candidates[k], candidates[l]];
+          const splits: [[string,string],[string,string]][] = [
+            [[four[0],four[1]],[four[2],four[3]]],
+            [[four[0],four[2]],[four[1],four[3]]],
+            [[four[0],four[3]],[four[1],four[2]]],
+          ];
+          for (const [t1,t2] of splits) {
+            const s = scoreAssignment(t1, t2, partnerCount, opponentCount);
+            if (s < bestScore) {
+              bestScore = s;
+              bestCourt = { courtNum, team1: [t1[0],t1[1]], team2: [t2[0],t2[1]] };
+            }
+          }
+        }
+      }
+    }
+  }
+  return bestCourt;
+}
+
+function generateRounds(players: Player[], numCourts: number): Round[] {
+  const n = players.length;
+  if (n < 4) return [];
+  const activeCourts = Math.min(Math.floor(n / 4), numCourts);
+  const sitOutCount = n - activeCourts * 4;
+  const totalRounds = Math.max(n % 2 === 0 ? n - 1 : n, 10);
+  const ids = players.map(p => p.id);
+
+  const partnerCount: Record<string, number> = {};
+  const opponentCount: Record<string, number> = {};
+  const sitCounts: Record<string, number> = {};
+  ids.forEach(id => { sitCounts[id] = 0; });
+
+  const rounds: Round[] = [];
+
+  for (let r = 0; r < totalRounds; r++) {
+    let sitOuts: string[] = [];
+    if (sitOutCount > 0) {
+      sitOuts = [...ids].sort((a,b) => sitCounts[a]-sitCounts[b] || Math.random()-0.5).slice(0, sitOutCount);
+    }
+    const active = ids.filter(id => !sitOuts.includes(id));
+    const shuffled = [...active].sort(() => Math.random() - 0.5);
+    const used = new Set<string>();
+    const courts: Court[] = [];
+
+    for (let c = 0; c < activeCourts; c++) {
+      const avail = shuffled.filter(id => !used.has(id));
+      if (avail.length < 4) break;
+      const court = bestCourtFromPool(avail, c+1, partnerCount, opponentCount)
+        || { courtNum: c+1, team1: [avail[0],avail[1]], team2: [avail[2],avail[3]] };
+      [...court.team1, ...court.team2].forEach(id => used.add(id));
+      courts.push(court);
+      incMap(partnerCount, court.team1[0], court.team1[1]);
+      incMap(partnerCount, court.team2[0], court.team2[1]);
+      for (const a of court.team1) for (const b of court.team2) incMap(opponentCount, a, b);
+    }
+
+    sitOuts.forEach(id => { sitCounts[id]++; });
+    rounds.push({ courts, sitOuts, roundNum: r + 1, subRounds: [] });
+  }
+  return rounds;
+}
+
+// ── GENERATE A SUB-ROUND for a specific finished court ─────────────────────
+// availablePlayers = sit-outs + players from the finished court
+// courtNum = the court number being re-used
+// existing partnerCount/opponentCount built from all completed play so far
+function generateSubRound(
+  availablePlayers: string[],
+  allPlayers: string[],
+  courtNum: number,
+  parentRoundIdx: number,
+  subLabel: string,
+  partnerCount: Record<string,number>,
+  opponentCount: Record<string,number>
+): SubRound | null {
+  if (availablePlayers.length < 4) return null;
+  const shuffled = [...availablePlayers].sort(() => Math.random() - 0.5);
+  const court = bestCourtFromPool(shuffled, courtNum, partnerCount, opponentCount);
+  if (!court) return null;
+  const playing = new Set([...court.team1, ...court.team2]);
+  const sitOuts = allPlayers.filter(id => !playing.has(id) && availablePlayers.includes(id));
+  return {
+    id: `r${parentRoundIdx}_sub_${Date.now()}`,
+    parentRoundIdx,
+    subLabel,
+    court,
+    sitOuts,
+  };
+}
+
+// Build partnerCount/opponentCount from all completed games so far
+function buildPairHistory(
+  rounds: Round[], scores: Record<string,Score>, subScores: Record<string,Score>
+): { partnerCount: Record<string,number>; opponentCount: Record<string,number> } {
+  const partnerCount: Record<string,number> = {};
+  const opponentCount: Record<string,number> = {};
+  rounds.forEach((round, ri) => {
+    round.courts.forEach((court, ci) => {
+      if (!scores[`${ri}-${ci}`]?.done) return;
+      incMap(partnerCount, court.team1[0], court.team1[1]);
+      incMap(partnerCount, court.team2[0], court.team2[1]);
+      for (const a of court.team1) for (const b of court.team2) incMap(opponentCount, a, b);
+    });
+    (round.subRounds||[]).forEach(sub => {
+      if (!subScores[sub.id]?.done) return;
+      incMap(partnerCount, sub.court.team1[0], sub.court.team1[1]);
+      incMap(partnerCount, sub.court.team2[0], sub.court.team2[1]);
+      for (const a of sub.court.team1) for (const b of sub.court.team2) incMap(opponentCount, a, b);
+    });
+  });
+  return { partnerCount, opponentCount };
+}
+
+// ── LEADERBOARD ──────────────────────────────────────────────────────────────
+function computeLeaderboard(
+  players: Player[], rounds: Round[],
+  scores: Record<string,Score>, subScores: Record<string,Score>
+): Stats[] {
+  const stats: Record<string, Stats> = {};
+  players.forEach(p => { stats[p.id] = { id:p.id, name:p.name, wins:0, points:0, played:0 }; });
+
+  rounds.forEach((round, ri) => {
+    round.courts.forEach((court, ci) => {
+      const sc = scores[`${ri}-${ci}`];
+      if (!sc?.done) return;
+      const s1 = parseInt(sc.s1), s2 = parseInt(sc.s2);
+      [...court.team1,...court.team2].forEach(id => { if(stats[id]) stats[id].played++; });
+      court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; });
+      court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; });
+    });
+    (round.subRounds||[]).forEach(sub => {
+      const sc = subScores[sub.id];
+      if (!sc?.done) return;
+      const s1 = parseInt(sc.s1), s2 = parseInt(sc.s2);
+      [...sub.court.team1,...sub.court.team2].forEach(id => { if(stats[id]) stats[id].played++; });
+      sub.court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; });
+      sub.court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; });
+    });
+  });
+
+  return Object.values(stats).sort((a,b) => b.wins-a.wins || b.points-a.points);
+}
+
+// ── UI COMPONENTS ─────────────────────────────────────────────────────────────
+function Btn({ onClick, color=C.green, textColor="#fff", children, small=false, disabled=false, outline=false, full=false }: {
+  onClick?: ()=>void; color?: string; textColor?: string; children: React.ReactNode;
+  small?: boolean; disabled?: boolean; outline?: boolean; full?: boolean;
+}) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      background: outline?"transparent":disabled?C.grayMid:color,
+      color: outline?color:textColor, border: outline?`2px solid ${color}`:"none",
+      borderRadius:8, padding:small?"5px 12px":"9px 20px", fontWeight:700,
+      fontSize:small?13:15, cursor:disabled?"not-allowed":"pointer",
+      opacity:disabled?0.6:1, transition:"opacity .15s", width:full?"100%":"auto",
+    }}>{children}</button>
+  );
+}
+
+function Badge({ color, children }: { color: string; children: React.ReactNode }) {
+  return <span style={{ background:color, color:"#fff", borderRadius:8, padding:"2px 10px", fontSize:12, fontWeight:700 }}>{children}</span>;
+}
+
+const LeaderboardTable = ({ lb }: { lb: Stats[] }) => (
+  <div>
+    <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px", gap:6, marginBottom:8 }}>
+      {["#","Player","Wins","Pts","Played"].map(h=>(
+        <div key={h} style={{ fontSize:11, fontWeight:700, color:"#aaa", textAlign:h==="Player"?"left":"center" }}>{h}</div>
+      ))}
+    </div>
+    {lb.map((p,i)=>(
+      <div key={p.id} style={{
+        display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px", gap:6,
+        alignItems:"center", padding:"9px 0", borderTop:`1px solid ${C.gray}`,
+        background:i===0?C.yellowLight:i<3?C.greenLight:"transparent",
+        borderRadius:8, paddingLeft:8
+      }}>
+        <div style={{ fontWeight:900, color:i===0?C.yellow:i<3?C.greenMid:"#aaa", textAlign:"center" }}>
+          {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
+        </div>
+        <div style={{ fontWeight:700, color:C.dark }}>{p.name}</div>
+        <div style={{ textAlign:"center", fontWeight:700, color:C.green }}>{p.wins}</div>
+        <div style={{ textAlign:"center", color:"#555" }}>{p.points}</div>
+        <div style={{ textAlign:"center", color:"#aaa", fontSize:13 }}>{p.played}</div>
+      </div>
+    ))}
+    {lb.every(p=>p.played===0)&&<div style={{ color:"#aaa", textAlign:"center", padding:20 }}>No scores yet.</div>}
+  </div>
+);
+
+// ── SCORE CARD ────────────────────────────────────────────────────────────────
+function CourtCard({
+  court, scoreKey, scores, groupColor, label, onScoreChange, onSubmit, onEdit,
+  showRegenerate, onRegenerate, isSubRound = false,
+}: {
+  court: Court; scoreKey: string; scores: Record<string,Score>; groupColor: string;
+  label: string; onScoreChange: (key: string, field: "s1"|"s2", val: string)=>void;
+  onSubmit: (key: string)=>void; onEdit: (key: string)=>void;
+  showRegenerate?: boolean; onRegenerate?: ()=>void; isSubRound?: boolean;
+}) {
+  const sc = scores[scoreKey]||{s1:"",s2:"",done:false};
+  const winner = sc.done?(parseInt(sc.s1)>parseInt(sc.s2)?1:2):null;
+  return (
+    <div style={{
+      background:"#fff", borderRadius:12, padding:16, marginBottom:12,
+      boxShadow:"0 2px 8px #0001",
+      borderLeft:`5px solid ${isSubRound ? C.orange : groupColor}`,
+      opacity: isSubRound ? 1 : 1,
+    }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div style={{ fontWeight:800, color: isSubRound?C.orange:groupColor, fontSize:14 }}>
+            🏓 {label}
+          </div>
+          {isSubRound && <Badge color={C.orange}>⚡ Extra</Badge>}
+        </div>
+        <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+          {sc.done && showRegenerate && onRegenerate && (
+            <button onClick={onRegenerate} title="Generate next game for this court" style={{
+              background:C.yellowLight, border:`1px solid ${C.yellow}`, borderRadius:8,
+              padding:"4px 10px", cursor:"pointer", fontSize:12, fontWeight:700, color:C.dark,
+            }}>⚡ Next Game</button>
+          )}
+          {sc.done&&<Badge color={C.greenMid}>✓ Done</Badge>}
+        </div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:8, alignItems:"center" }}>
+        <div style={{ background:winner===1?C.greenLight:C.gray, borderRadius:10, padding:"10px 12px", border:winner===1?`2px solid ${C.greenMid}`:"2px solid transparent" }}>
+          <div style={{ fontSize:10, fontWeight:700, color:C.greenMid, marginBottom:4 }}>TEAM 1</div>
+          {court.team1.map(id=><div key={id} style={{ fontWeight:600, color:C.dark, fontSize:13 }}>{id}</div>)}
+        </div>
+        <div style={{ textAlign:"center", fontWeight:900, color:"#ccc" }}>VS</div>
+        <div style={{ background:winner===2?C.greenLight:C.gray, borderRadius:10, padding:"10px 12px", border:winner===2?`2px solid ${C.greenMid}`:"2px solid transparent" }}>
+          <div style={{ fontSize:10, fontWeight:700, color:C.greenMid, marginBottom:4 }}>TEAM 2</div>
+          {court.team2.map(id=><div key={id} style={{ fontWeight:600, color:C.dark, fontSize:13 }}>{id}</div>)}
+        </div>
+      </div>
+      <div style={{ marginTop:12, display:"flex", alignItems:"center", gap:8, justifyContent:"center" }}>
+        {sc.done?(
+          <>
+            <div style={{ fontWeight:900, fontSize:20, color:C.dark }}>{sc.s1} — {sc.s2}</div>
+            <Btn small outline color={C.blue} onClick={()=>onEdit(scoreKey)}>Edit</Btn>
+          </>
+        ):(
+          <>
+            <input type="number" min={0} max={25} value={sc.s1}
+              onChange={e=>onScoreChange(scoreKey,"s1",e.target.value)}
+              placeholder="T1" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
+            <span style={{ fontWeight:900, color:"#aaa" }}>—</span>
+            <input type="number" min={0} max={25} value={sc.s2}
+              onChange={e=>onScoreChange(scoreKey,"s2",e.target.value)}
+              placeholder="T2" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
+            <Btn small onClick={()=>onSubmit(scoreKey)} disabled={sc.s1===""||sc.s2===""} color={C.green}>✓</Btn>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── TOURNAMENT VIEW ───────────────────────────────────────────────────────────
+function TournamentView({ group, onEnd }: { group: Group; onEnd: ()=>void }) {
+  const t = group.tournament!;
+  const [currentRound, setCurrentRound] = useState(t.currentRound||0);
+  const [scores, setScores] = useState<Record<string,Score>>(t.scores||{});
+  const [subScores, setSubScores] = useState<Record<string,Score>>(t.subScores||{});
+  const [activeTab, setActiveTab] = useState<"courts"|"standings">("courts");
+  const players = group.players;
+  const nameOf = useCallback((id: string) => players.find(p=>p.id===id)?.name||"?", [players]);
+
+  useEffect(()=>{ setCurrentRound(t.currentRound||0); },[t.currentRound]);
+  useEffect(()=>{ setScores(t.scores||{}); },[JSON.stringify(t.scores)]);
+  useEffect(()=>{ setSubScores(t.subScores||{}); },[JSON.stringify(t.subScores)]);
+
+  const saveState = async (
+    ns: Record<string,Score>, nss: Record<string,Score>,
+    cr: number, rounds?: Round[]
+  ) => {
+    await setDoc(doc(db,"pb3_groups",group.id),{
+      ...group,
+      tournament:{
+        started:true,
+        rounds: rounds||t.rounds,
+        scores:ns,
+        subScores:nss,
+        currentRound:cr,
+      }
+    });
+  };
+
+  const handleScoreChange = (key: string, field: "s1"|"s2", val: string) => {
+    if (key.startsWith("r")) {
+      setSubScores(prev=>({...prev,[key]:{...(prev[key]||{s1:"",s2:"",done:false}),[field]:val}}));
+    } else {
+      setScores(prev=>({...prev,[key]:{...(prev[key]||{s1:"",s2:"",done:false}),[field]:val}}));
+    }
+  };
+
+  const submitScore = async (key: string) => {
+    if (key.startsWith("r")) {
+      const sc = subScores[key]||{s1:"",s2:"",done:false};
+      if (sc.s1===""||sc.s2==="") return;
+      const nss = {...subScores, [key]:{...sc, done:true}};
+      setSubScores(nss);
+      await saveState(scores, nss, currentRound);
+    } else {
+      const sc = scores[key]||{s1:"",s2:"",done:false};
+      if (sc.s1===""||sc.s2==="") return;
+      const ns = {...scores, [key]:{...sc, done:true}};
+      setScores(ns);
+      await saveState(ns, subScores, currentRound);
+    }
+  };
+
+  const editScore = async (key: string) => {
+    if (key.startsWith("r")) {
+      const nss = {...subScores, [key]:{...(subScores[key]||{s1:"",s2:"",done:false}), done:false}};
+      setSubScores(nss);
+      await saveState(scores, nss, currentRound);
+    } else {
+      const ns = {...scores, [key]:{...(scores[key]||{s1:"",s2:"",done:false}), done:false}};
+      setScores(ns);
+      await saveState(ns, subScores, currentRound);
+    }
+  };
+
+  const goRound = async (r: number) => {
+    setCurrentRound(r);
+    await saveState(scores, subScores, r);
+  };
+
+  // Regenerate a sub-round for a finished court
+  const handleRegenerate = async (courtIdx: number, courtNum: number) => {
+    const round = t.rounds[currentRound];
+    const roundScoreKey = `${currentRound}-${courtIdx}`;
+    if (!scores[roundScoreKey]?.done) return;
+
+    // Players available: sit-outs from this round + players from THIS finished court
+    const finishedCourtPlayers = [
+      ...round.courts[courtIdx].team1,
+      ...round.courts[courtIdx].team2
+    ];
+    const sitOutPlayers = round.sitOuts;
+    const availablePlayers = [...new Set([...finishedCourtPlayers, ...sitOutPlayers])];
+
+    // Also check if any sub-rounds for this court are done — if so, include their sit-outs too
+    const existingSubsForCourt = (round.subRounds||[]).filter(
+      s => s.parentRoundIdx === currentRound
+    );
+    // Count how many subs exist for labeling
+    const subCount = existingSubsForCourt.length;
+    const subLabel = `${round.roundNum}${"abcdefghijklmnop"[subCount]}`;
+
+    const { partnerCount, opponentCount } = buildPairHistory(t.rounds, scores, subScores);
+
+    const allIds = players.map(p=>p.id);
+    const sub = generateSubRound(
+      availablePlayers, allIds, courtNum, currentRound, subLabel, partnerCount, opponentCount
+    );
+    if (!sub) return;
+
+    // Attach sub to this round
+    const updatedRounds = t.rounds.map((rnd, ri) => {
+      if (ri !== currentRound) return rnd;
+      return { ...rnd, subRounds: [...(rnd.subRounds||[]), sub] };
+    });
+
+    await saveState(scores, subScores, currentRound, updatedRounds);
+  };
+
+  const round = t.rounds[currentRound];
+  const roundSubRounds = (round?.subRounds||[]).filter(s=>s.parentRoundIdx===currentRound);
+  const roundDone = round?.courts.every((_,ci)=>scores[`${currentRound}-${ci}`]?.done);
+  const leaderboard = useMemo(()=>computeLeaderboard(players,t.rounds,scores,subScores),[scores,subScores,t.rounds,players]);
+
+  // Replace player IDs with names in courts for display
+  const displayCourt = (court: Court): Court => ({
+    ...court,
+    team1: court.team1.map(nameOf),
+    team2: court.team2.map(nameOf),
+  });
+
+  return (
+    <div>
+      <div style={{ display:"flex", background:C.dark, borderRadius:10, marginBottom:16, overflow:"hidden" }}>
+        {(["courts","standings"] as const).map(tab=>(
+          <button key={tab} onClick={()=>setActiveTab(tab)} style={{
+            flex:1, padding:"10px 0", border:"none", cursor:"pointer",
+            background:activeTab===tab?group.color:"transparent",
+            color:activeTab===tab?"#fff":"#aaa", fontWeight:800, fontSize:13, letterSpacing:1
+          }}>{tab==="courts"?"🏓 Courts":"🏆 Standings"}</button>
+        ))}
+      </div>
+
+      {activeTab==="courts" && round && (
+        <>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+            <Btn small outline color={group.color} onClick={()=>goRound(Math.max(0,currentRound-1))} disabled={currentRound===0}>← Prev</Btn>
+            <div style={{ fontWeight:800, color:C.dark, fontSize:16 }}>
+              Round {round.roundNum}
+              <span style={{ color:"#aaa", fontWeight:400, fontSize:12 }}> of {t.rounds.length}</span>
+            </div>
+            <Btn small outline color={group.color} onClick={()=>goRound(Math.min(t.rounds.length-1,currentRound+1))} disabled={currentRound===t.rounds.length-1}>Next →</Btn>
+          </div>
+
+          {round.sitOuts.length>0 && (
+            <div style={{ background:C.yellowLight, border:`1px solid ${C.yellow}`, borderRadius:10, padding:"8px 14px", marginBottom:12, fontSize:13 }}>
+              <strong>Sitting out:</strong> {round.sitOuts.map(nameOf).join(", ")}
+            </div>
+          )}
+
+          {/* Main courts */}
+          {round.courts.map((court,ci)=>(
+            <CourtCard
+              key={ci}
+              court={displayCourt(court)}
+              scoreKey={`${currentRound}-${ci}`}
+              scores={scores}
+              groupColor={group.color}
+              label={`Court ${court.courtNum}`}
+              onScoreChange={handleScoreChange}
+              onSubmit={submitScore}
+              onEdit={editScore}
+              showRegenerate={true}
+              onRegenerate={()=>handleRegenerate(ci, court.courtNum)}
+            />
+          ))}
+
+          {/* Sub-rounds */}
+          {roundSubRounds.length>0 && (
+            <div style={{ marginTop:4, marginBottom:8 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+                <div style={{ height:1, flex:1, background:`${C.orange}44` }}/>
+                <span style={{ fontSize:12, fontWeight:700, color:C.orange, letterSpacing:1 }}>⚡ EXTRA GAMES</span>
+                <div style={{ height:1, flex:1, background:`${C.orange}44` }}/>
+              </div>
+              {roundSubRounds.map(sub=>(
+                <CourtCard
+                  key={sub.id}
+                  court={displayCourt(sub.court)}
+                  scoreKey={sub.id}
+                  scores={subScores}
+                  groupColor={group.color}
+                  label={`Court ${sub.court.courtNum} — Round ${sub.subLabel}`}
+                  onScoreChange={handleScoreChange}
+                  onSubmit={submitScore}
+                  onEdit={editScore}
+                  isSubRound={true}
+                />
+              ))}
+            </div>
+          )}
+
+          {roundDone&&(
+            <div style={{ textAlign:"center", marginTop:8 }}>
+              <div style={{ color:C.green, fontWeight:700, marginBottom:8 }}>✅ Round {round.roundNum} complete!</div>
+              {currentRound<t.rounds.length-1
+                ?<Btn onClick={()=>goRound(currentRound+1)} color={C.yellow} textColor={C.dark}>Next Round →</Btn>
+                :<Btn onClick={()=>setActiveTab("standings")} color={C.yellow} textColor={C.dark}>🏆 Final Standings</Btn>
+              }
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab==="standings"&&(
+        <div style={{ background:"#fff", borderRadius:12, padding:18, boxShadow:"0 2px 8px #0001" }}>
+          <LeaderboardTable lb={leaderboard}/>
+          <div style={{ marginTop:16, textAlign:"center" }}>
+            <Btn onClick={onEnd} color={C.purple}>💾 End & Save Tournament</Btn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── FEEDBACK MODAL ────────────────────────────────────────────────────────────
+const FEEDBACK_TYPES = [
+  { key: "bug",     label: "🐛 Bug / Error",        color: C.red },
+  { key: "feature", label: "💡 Feature Request",    color: C.blue },
+  { key: "general", label: "💬 General Feedback",   color: C.green },
+] as const;
+
+function FeedbackModal({ onClose }: { onClose: ()=>void }) {
+  const [type, setType] = useState<"bug"|"feature"|"general">("general");
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [message, setMessage] = useState("");
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<"idle"|"sending"|"done"|"error">("idle");
+
+  const submit = async () => {
+    if (!message.trim()) return;
+    setStatus("sending");
+    const entry: FeedbackEntry = {
+      id: `fb_${Date.now()}`,
+      type, rating, message: message.trim(), name: name.trim(),
+      version: "v3",
+      submittedAt: new Date().toISOString(),
+    };
+
+    // 1. Save to Firebase
+    try {
+      await setDoc(doc(db, "pb3_feedback", entry.id), entry);
+    } catch (e) { console.error("Firebase feedback error:", e); }
+
+    // 2. Send email notification
+    const typeLabel = FEEDBACK_TYPES.find(t=>t.key===type)?.label || type;
+    const emailOk = await sendFeedbackEmail({
+      subject:   `[Pickleball V3] ${typeLabel}${rating>0?` — ${rating}/5 stars`:""}`,
+      type:      typeLabel,
+      rating:    rating > 0 ? `${"⭐".repeat(rating)} (${rating}/5)` : "Not rated",
+      from_name: name.trim() || "Anonymous",
+      version:   "V3",
+      sent_at:   new Date().toLocaleString(),
+      message:   message.trim(),
+    });
+
+    setStatus(emailOk ? "done" : "done"); // always show done — Firebase saved either way
+  };
+
+  if (status === "done") return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:20 }}>
+      <div style={{ background:"#fff", borderRadius:16, padding:40, maxWidth:360, width:"100%", textAlign:"center", boxShadow:"0 8px 32px #0004" }}>
+        <div style={{ fontSize:52, marginBottom:16 }}>🎉</div>
+        <div style={{ fontWeight:900, color:C.dark, fontSize:20, marginBottom:8 }}>Thanks for your feedback!</div>
+        <div style={{ color:"#666", fontSize:14, marginBottom:28 }}>We read every submission and use it to improve the app.</div>
+        <Btn onClick={onClose} color={C.green} full>Close</Btn>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:2000, padding:20, overflowY:"auto" }}>
+      <div style={{ background:"#fff", borderRadius:16, padding:28, width:"100%", maxWidth:460, boxShadow:"0 8px 32px #0004", margin:"auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
+          <div style={{ fontWeight:900, color:C.dark, fontSize:19 }}>📝 Feedback</div>
+          <button onClick={onClose} style={{ background:"none", border:"none", fontSize:22, color:"#aaa", cursor:"pointer" }}>×</button>
+        </div>
+
+        {/* Type selector */}
+        <div style={{ marginBottom:18 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>CATEGORY</label>
+          <div style={{ display:"flex", gap:8, marginTop:8 }}>
+            {FEEDBACK_TYPES.map(ft=>(
+              <button key={ft.key} onClick={()=>setType(ft.key)} style={{
+                flex:1, padding:"9px 6px", borderRadius:8, border:`2px solid`,
+                borderColor: type===ft.key ? ft.color : C.grayMid,
+                background: type===ft.key ? ft.color : "#fff",
+                color: type===ft.key ? "#fff" : "#666",
+                fontWeight:700, fontSize:12, cursor:"pointer", transition:"all .15s",
+              }}>{ft.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Star rating */}
+        <div style={{ marginBottom:18 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>RATING (OPTIONAL)</label>
+          <div style={{ display:"flex", gap:6, marginTop:8 }}>
+            {[1,2,3,4,5].map(n=>(
+              <button key={n}
+                onClick={()=>setRating(rating===n ? 0 : n)}
+                onMouseEnter={()=>setHoverRating(n)}
+                onMouseLeave={()=>setHoverRating(0)}
+                style={{ background:"none", border:"none", fontSize:28, cursor:"pointer", padding:"0 2px",
+                  color: n<=(hoverRating||rating) ? C.yellow : C.grayMid,
+                  transform: n<=(hoverRating||rating) ? "scale(1.15)" : "scale(1)",
+                  transition:"all .1s",
+                }}>★</button>
+            ))}
+            {rating>0&&<span style={{ marginLeft:4, color:"#888", fontSize:13, alignSelf:"center" }}>{rating}/5</span>}
+          </div>
+        </div>
+
+        {/* Name */}
+        <div style={{ marginBottom:14 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>YOUR NAME (OPTIONAL)</label>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Anonymous"
+            style={{ display:"block", width:"100%", marginTop:6, padding:"10px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:14, outline:"none", boxSizing:"border-box" }}/>
+        </div>
+
+        {/* Message */}
+        <div style={{ marginBottom:22 }}>
+          <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>
+            MESSAGE *
+            {type==="bug"&&<span style={{ color:C.red, marginLeft:6, fontWeight:400 }}>Describe what happened and what you expected</span>}
+            {type==="feature"&&<span style={{ color:C.blue, marginLeft:6, fontWeight:400 }}>Describe your idea</span>}
+          </label>
+          <textarea value={message} onChange={e=>setMessage(e.target.value)}
+            placeholder={
+              type==="bug" ? "e.g. When I click 'Next Game', the app crashes on iOS Safari..." :
+              type==="feature" ? "e.g. I'd love to see a timer per round..." :
+              "Tell us what you think about the app..."
+            }
+            rows={4}
+            style={{ display:"block", width:"100%", marginTop:6, padding:"10px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:14, outline:"none", boxSizing:"border-box", resize:"vertical", fontFamily:"inherit" }}/>
+        </div>
+
+        <div style={{ display:"flex", gap:10 }}>
+          <Btn outline color={C.grayMid} textColor="#666" onClick={onClose} full>Cancel</Btn>
+          <Btn
+            color={FEEDBACK_TYPES.find(t=>t.key===type)?.color||C.green}
+            onClick={submit}
+            disabled={!message.trim() || status==="sending"}
+            full
+          >
+            {status==="sending" ? "Sending..." : "Submit Feedback"}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── PASSWORD GATE ─────────────────────────────────────────────────────────────
+function PasswordGate({ group, onSuccess }: { group: Group; onSuccess: ()=>void }) {
+  const [pw, setPw] = useState("");
+  const [error, setError] = useState(false);
+  const check = () => {
+    if (simpleHash(pw) === group.passwordHash) {
+      sessionStorage.setItem(`pw_ok_${group.id}`, "1");
+      onSuccess();
+    } else {
+      setError(true);
+      setTimeout(()=>setError(false), 1500);
+    }
+  };
+  return (
+    <div style={{ minHeight:"100vh", background:C.greenLight, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
+      <div style={{ background:"#fff", borderRadius:16, padding:32, maxWidth:380, width:"100%", boxShadow:"0 8px 32px #0002", textAlign:"center" }}>
+        <div style={{ fontSize:48, marginBottom:16 }}>🔒</div>
+        <div style={{ fontWeight:900, color:C.dark, fontSize:20, marginBottom:8 }}>{group.name}</div>
+        {group.location&&<div style={{ color:"#888", fontSize:13, marginBottom:20 }}>📍 {group.location}</div>}
+        <div style={{ color:"#555", fontSize:14, marginBottom:20 }}>This group is private. Enter the password to continue.</div>
+        <input
+          type="password" value={pw} onChange={e=>setPw(e.target.value)}
+          onKeyDown={e=>e.key==="Enter"&&check()} placeholder="Enter password"
+          style={{
+            width:"100%", padding:"11px 14px", borderRadius:8, fontSize:15, outline:"none",
+            border:`2px solid ${error?C.red:C.grayMid}`, marginBottom:12, boxSizing:"border-box",
+            transition:"border-color .2s"
+          }}/>
+        {error&&<div style={{ color:C.red, fontSize:13, marginBottom:12, fontWeight:600 }}>Incorrect password</div>}
+        <Btn onClick={check} color={C.green} full disabled={!pw}>Enter Group</Btn>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────────────────
+export default function App() {
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [history, setHistory] = useState<SavedTournament[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState<"groups"|"history">("groups");
+  const [selectedGroupId, setSelectedGroupId] = useState<string|null>(null);
+  const [groupView, setGroupView] = useState<"players"|"tournament">("players");
+  const [selectedHistory, setSelectedHistory] = useState<SavedTournament|null>(null);
+  const [nameInput, setNameInput] = useState("");
+  const [pwUnlocked, setPwUnlocked] = useState<Record<string,boolean>>({}); 
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  // Group modal state
+  const [showModal, setShowModal] = useState(false);
+  const [editingGroup, setEditingGroup] = useState<Group|null>(null);
+  const [mName, setMName] = useState("");
+  const [mLocation, setMLocation] = useState("");
+  const [mColor, setMColor] = useState(GROUP_COLORS[0]);
+  const [mCourts, setMCourts] = useState(2);
+  const [mPrivate, setMPrivate] = useState(false);
+  const [mPassword, setMPassword] = useState("");
+  const [mShowPw, setMShowPw] = useState(false);
+
+  useEffect(()=>{
+    // Restore session unlocks
+    const unlocked: Record<string,boolean> = {};
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (k?.startsWith("pw_ok_")) unlocked[k.replace("pw_ok_","")] = true;
+    }
+    setPwUnlocked(unlocked);
+
+    const u1 = onSnapshot(collection(db,"pb3_groups"),snap=>{
+      const g: Group[] = [];
+      snap.forEach(d=>g.push(d.data() as Group));
+      g.sort((a,b)=>a.name.localeCompare(b.name));
+      setGroups(g); setLoading(false);
+    });
+    const u2 = onSnapshot(collection(db,"pb3_history"),snap=>{
+      const h: SavedTournament[] = [];
+      snap.forEach(d=>h.push(d.data() as SavedTournament));
+      h.sort((a,b)=>parseInt(b.id)-parseInt(a.id));
+      setHistory(h);
+    });
+    return ()=>{ u1(); u2(); };
+  },[]);
+
+  const selectedGroup = groups.find(g=>g.id===selectedGroupId)||null;
+
+  const openNewGroup = () => {
+    setEditingGroup(null);
+    setMName(""); setMLocation(""); setMColor(GROUP_COLORS[groups.length%GROUP_COLORS.length]);
+    setMCourts(2); setMPrivate(false); setMPassword("");
+    setShowModal(true);
+  };
+  const openEditGroup = (g: Group) => {
+    setEditingGroup(g); setMName(g.name); setMLocation(g.location||"");
+    setMColor(g.color); setMCourts(g.numCourts); setMPrivate(g.isPrivate||false); setMPassword("");
+    setShowModal(true);
+  };
+  const saveGroup = async () => {
+    if (!mName.trim()) return;
+    if (mPrivate && !editingGroup && !mPassword.trim()) return;
+    const id = editingGroup?.id||`g_${Date.now()}`;
+    const base = editingGroup||{ id, players:[], numCourts:mCourts };
+    let passwordHash = editingGroup?.passwordHash;
+    if (mPrivate && mPassword.trim()) passwordHash = simpleHash(mPassword.trim());
+    if (!mPrivate) passwordHash = undefined;
+    await setDoc(doc(db,"pb3_groups",id), {
+      ...base, id, name:mName.trim(), location:mLocation.trim(),
+      color:mColor, numCourts:mCourts, isPrivate:mPrivate,
+      ...(passwordHash ? {passwordHash} : {}),
+    });
+    if (mPrivate && mPassword.trim()) {
+      sessionStorage.setItem(`pw_ok_${id}`, "1");
+      setPwUnlocked(prev=>({...prev,[id]:true}));
+    }
+    setShowModal(false);
+  };
+  const deleteGroup = async (id: string) => {
+    if (!window.confirm("Delete this group and all its data?")) return;
+    await deleteDoc(doc(db,"pb3_groups",id));
+    if (selectedGroupId===id) setSelectedGroupId(null);
+  };
+
+  const addPlayer = async () => {
+    const name = nameInput.trim();
+    if (!name||!selectedGroup||selectedGroup.players.length>=MAX_PLAYERS) return;
+    if (selectedGroup.players.find(p=>p.name.toLowerCase()===name.toLowerCase())) return;
+    const newPlayers = [...selectedGroup.players, {name, id:`p_${Date.now()}`}];
+    await setDoc(doc(db,"pb3_groups",selectedGroup.id), {...selectedGroup, players:newPlayers});
+    setNameInput("");
+  };
+  const removePlayer = async (pid: string) => {
+    if (!selectedGroup) return;
+    await setDoc(doc(db,"pb3_groups",selectedGroup.id), {...selectedGroup, players:selectedGroup.players.filter(p=>p.id!==pid)});
+  };
+
+  const startTournament = async () => {
+    if (!selectedGroup||selectedGroup.players.length<4) return;
+    const rounds = generateRounds(selectedGroup.players, selectedGroup.numCourts);
+    await setDoc(doc(db,"pb3_groups",selectedGroup.id), {
+      ...selectedGroup,
+      tournament:{started:true, rounds, scores:{}, subScores:{}, currentRound:0}
+    });
+    setGroupView("tournament");
+  };
+
+  const endTournament = async () => {
+    if (!selectedGroup?.tournament) return;
+    const t = selectedGroup.tournament;
+    const lb = computeLeaderboard(selectedGroup.players, t.rounds, t.scores, t.subScores||{});
+    const saved: SavedTournament = {
+      id: Date.now().toString(),
+      date: new Date().toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}),
+      groupId:selectedGroup.id, groupName:selectedGroup.name, location:selectedGroup.location||"",
+      isPrivate: selectedGroup.isPrivate||false,
+      players:selectedGroup.players, rounds:t.rounds, scores:t.scores,
+      subScores:t.subScores||{}, leaderboard:lb,
+    };
+    await setDoc(doc(db,"pb3_history",saved.id), saved);
+    await setDoc(doc(db,"pb3_groups",selectedGroup.id), {
+      ...selectedGroup, tournament:{started:false,rounds:[],scores:{},subScores:{},currentRound:0}
+    });
+    setGroupView("players"); setMainTab("history"); setSelectedGroupId(null);
+  };
+
+  if (loading) return (
+    <div style={{ minHeight:"100vh", background:C.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
+      <div style={{ fontSize:40 }}>🥒</div>
+      <div style={{ color:C.green, fontWeight:700, fontSize:18 }}>Loading...</div>
+    </div>
+  );
+
+  // ── PASSWORD GATE ──
+  if (selectedGroupId && selectedGroup?.isPrivate && !pwUnlocked[selectedGroupId]) {
+    return (
+      <PasswordGate
+        group={selectedGroup}
+        onSuccess={()=>setPwUnlocked(prev=>({...prev,[selectedGroupId]:true}))}
+      />
+    );
+  }
+
+  // ── GROUP DETAIL VIEW ──
+  if (selectedGroupId && selectedGroup) {
+    const hasTournament = selectedGroup.tournament?.started;
+    return (
+      <div style={{ minHeight:"100vh", background:C.greenLight, fontFamily:"'Segoe UI',sans-serif" }}>
+        <div style={{ background:selectedGroup.color, padding:"14px 20px", display:"flex", alignItems:"center", gap:10, boxShadow:"0 2px 8px #0003" }}>
+          <button onClick={()=>{ setSelectedGroupId(null); setGroupView("players"); }} style={{ background:"rgba(255,255,255,0.2)", border:"none", borderRadius:8, color:"#fff", padding:"6px 12px", cursor:"pointer", fontWeight:700, fontSize:13 }}>← Back</button>
+          <div style={{ flex:1 }}>
+            <div style={{ color:"#fff", fontWeight:900, fontSize:18 }}>
+              {selectedGroup.name}
+              {selectedGroup.isPrivate&&<span style={{ marginLeft:8, fontSize:14 }}>🔒</span>}
+            </div>
+            {selectedGroup.location&&<div style={{ color:"rgba(255,255,255,0.75)", fontSize:12 }}>📍 {selectedGroup.location}</div>}
+          </div>
+          <button onClick={()=>setShowFeedback(true)} title="Send feedback" style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", padding:"6px 10px", cursor:"pointer", fontSize:16 }}>💬</button>
+          <a href="/" title="Go to homepage" style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", padding:"6px 10px", cursor:"pointer", fontSize:16, textDecoration:"none" }}>🏠</a>
+          <Badge color="rgba(255,255,255,0.25)">{selectedGroup.players.length} players</Badge>
+        </div>
+
+        <div style={{ display:"flex", background:C.dark }}>
+          {(["players","tournament"] as const).map(v=>(
+            <button key={v} onClick={()=>setGroupView(v)} style={{
+              flex:1, padding:"11px 0", border:"none", cursor:"pointer",
+              background:groupView===v?selectedGroup.color:"transparent",
+              color:groupView===v?"#fff":"#aaa", fontWeight:800, fontSize:13, letterSpacing:1,
+              borderBottom:groupView===v?`3px solid ${selectedGroup.color}`:"3px solid transparent"
+            }}>
+              {v==="players"?"👥 PLAYERS":"🎾 TOURNAMENT"}
+              {v==="tournament"&&hasTournament&&<span style={{ marginLeft:6, background:C.yellow, color:C.dark, borderRadius:10, padding:"1px 6px", fontSize:10 }}>LIVE</span>}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ maxWidth:700, margin:"0 auto", padding:"20px 16px" }}>
+          {groupView==="players"&&(
+            <div>
+              <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001", marginBottom:16 }}>
+                <div style={{ fontWeight:800, color:C.dark, fontSize:16, marginBottom:12 }}>
+                  Players <Badge color={selectedGroup.color}>{selectedGroup.players.length}/{MAX_PLAYERS}</Badge>
+                  {selectedGroup.isPrivate&&<span style={{ marginLeft:8, fontSize:12, color:"#888" }}>🔒 Private</span>}
+                </div>
+                <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+                  <input value={nameInput} onChange={e=>setNameInput(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&addPlayer()} placeholder="Add player name..." maxLength={30}
+                    style={{ flex:1, padding:"9px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:15, outline:"none" }}/>
+                  <Btn onClick={addPlayer} color={selectedGroup.color} disabled={!nameInput.trim()||selectedGroup.players.length>=MAX_PLAYERS}>+ Add</Btn>
+                </div>
+                {selectedGroup.players.length===0&&<div style={{ color:"#aaa", textAlign:"center", padding:20 }}>No players yet.</div>}
+                {selectedGroup.players.map((p,i)=>(
+                  <div key={p.id} style={{ display:"flex", alignItems:"center", background:C.greenLight, borderRadius:8, padding:"7px 12px", marginBottom:6 }}>
+                    <span style={{ color:selectedGroup.color, fontWeight:700, width:26 }}>{i+1}.</span>
+                    <span style={{ flex:1, fontWeight:600, color:C.dark }}>{p.name}</span>
+                    {!hasTournament&&<button onClick={()=>removePlayer(p.id)} style={{ background:"none", border:"none", color:C.red, cursor:"pointer", fontSize:18 }}>×</button>}
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001", marginBottom:16 }}>
+                <div style={{ fontWeight:800, color:C.dark, fontSize:15, marginBottom:12 }}>Court Settings</div>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <span style={{ color:"#555", fontSize:14 }}>Courts:</span>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {[1,2,3,4,5,6,7].map(n=>(
+                      <button key={n} onClick={async()=>{ await setDoc(doc(db,"pb3_groups",selectedGroup.id),{...selectedGroup,numCourts:n}); }} style={{
+                        width:36,height:36,borderRadius:8,border:"2px solid",
+                        borderColor:selectedGroup.numCourts===n?selectedGroup.color:C.grayMid,
+                        background:selectedGroup.numCourts===n?selectedGroup.color:"#fff",
+                        color:selectedGroup.numCourts===n?"#fff":C.dark,fontWeight:700,cursor:"pointer"
+                      }}>{n}</button>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ marginTop:10, color:"#888", fontSize:13 }}>
+                  {selectedGroup.players.length} players → {Math.min(Math.floor(selectedGroup.players.length/4),selectedGroup.numCourts)} court(s) active
+                </div>
+              </div>
+
+              <div style={{ textAlign:"center" }}>
+                {hasTournament
+                  ?<Btn onClick={()=>setGroupView("tournament")} color={C.yellow} textColor={C.dark}>▶ Resume Live Tournament</Btn>
+                  :<Btn onClick={startTournament} disabled={selectedGroup.players.length<4} color={C.yellow} textColor={C.dark}>🎾 Start Tournament</Btn>
+                }
+                {!hasTournament&&selectedGroup.players.length<4&&<div style={{ color:"#888", marginTop:8, fontSize:13 }}>Need at least 4 players</div>}
+              </div>
+            </div>
+          )}
+
+          {groupView==="tournament"&&(
+            hasTournament&&selectedGroup.tournament
+              ?<TournamentView group={selectedGroup} onEnd={endTournament}/>
+              :<div style={{ textAlign:"center", color:"#888", padding:40 }}>
+                No active tournament.<br/>
+                <button onClick={()=>setGroupView("players")} style={{ marginTop:12, background:"none", border:"none", color:C.green, cursor:"pointer", fontWeight:700 }}>Go to Players →</button>
+              </div>
+          )}
+        </div>
+
+        {/* Feedback modal */}
+        {showFeedback&&<FeedbackModal onClose={()=>setShowFeedback(false)}/>}
+      </div>
+    );
+  }
+
+  // ── MAIN VIEW ──────────────────────────────────────────────────────────────
+  return (
+    <div style={{ minHeight:"100vh", background:C.greenLight, fontFamily:"'Segoe UI',sans-serif" }}>
+      <div style={{ background:C.green, padding:"14px 20px", display:"flex", alignItems:"center", gap:12, boxShadow:"0 2px 8px #0003" }}>
+        <span style={{ fontSize:28 }}>🥒</span>
+        <div>
+          <div style={{ color:C.yellow, fontWeight:900, fontSize:20, letterSpacing:1 }}>PICKLEBALL</div>
+          <div style={{ color:"#fff", fontSize:11, fontWeight:600, letterSpacing:2 }}>ROUND-ROBIN V3 · MULTI-GROUP</div>
+        </div>
+        <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
+          {groups.filter(g=>g.tournament?.started).length>0&&(
+            <Badge color={C.orange}>🔴 {groups.filter(g=>g.tournament?.started).length} Live</Badge>
+          )}
+          <button onClick={()=>setShowFeedback(true)} title="Send feedback" style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", padding:"6px 11px", cursor:"pointer", fontSize:16 }}>💬</button>
+          <a href="/" title="Go to homepage" style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:8, color:"#fff", padding:"6px 11px", cursor:"pointer", fontSize:16, textDecoration:"none" }}>🏠</a>
+        </div>
+      </div>
+
+      <div style={{ display:"flex", background:C.dark }}>
+        {(["groups","history"] as const).map(t=>(
+          <button key={t} onClick={()=>setMainTab(t)} style={{
+            flex:1, maxWidth:220, padding:"11px 0", border:"none", cursor:"pointer",
+            background:mainTab===t?C.yellow:"transparent",
+            color:mainTab===t?C.dark:"#aaa", fontWeight:800, fontSize:13, letterSpacing:1,
+            borderBottom:mainTab===t?`3px solid ${C.yellow}`:"3px solid transparent"
+          }}>
+            {t==="groups"?"👥 GROUPS":"📚 HISTORY"}
+            {t==="history"&&history.filter(h=>!h.isPrivate||pwUnlocked[h.groupId]).length>0&&
+              <span style={{ marginLeft:4, background:C.purple, color:"#fff", borderRadius:10, padding:"1px 6px", fontSize:10 }}>
+                {history.filter(h=>!h.isPrivate||pwUnlocked[h.groupId]).length}
+              </span>
+            }
+          </button>
+        ))}
+      </div>
+
+      <div style={{ maxWidth:700, margin:"0 auto", padding:"20px 16px" }}>
+
+        {mainTab==="groups"&&(
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+              <div style={{ fontWeight:800, color:C.dark, fontSize:17 }}>Groups <Badge color={C.greenMid}>{groups.length}</Badge></div>
+              <Btn onClick={openNewGroup} color={C.green} small>+ New Group</Btn>
+            </div>
+
+            {groups.length===0&&(
+              <div style={{ background:"#fff", borderRadius:12, padding:40, textAlign:"center", color:"#aaa", boxShadow:"0 2px 8px #0001" }}>
+                No groups yet.<br/><span style={{ fontSize:13 }}>Create a group for each location!</span>
+              </div>
+            )}
+
+            {groups.map(g=>(
+              <div key={g.id} style={{ background:"#fff", borderRadius:12, marginBottom:14, boxShadow:"0 2px 8px #0001", overflow:"hidden" }}>
+                <div style={{ background:g.color, padding:"14px 18px", display:"flex", alignItems:"center", gap:12, cursor:"pointer" }}
+                  onClick={()=>{ setSelectedGroupId(g.id); setGroupView("players"); }}>
+                  <div style={{ flex:1 }}>
+                    <div style={{ color:"#fff", fontWeight:900, fontSize:17 }}>
+                      {g.name}
+                      {g.isPrivate&&<span style={{ marginLeft:8, fontSize:14, opacity:0.8 }}>🔒</span>}
+                    </div>
+                    {g.location&&<div style={{ color:"rgba(255,255,255,0.75)", fontSize:12 }}>📍 {g.location}</div>}
+                  </div>
+                  {g.tournament?.started&&<Badge color="rgba(255,100,0,0.9)">🔴 LIVE</Badge>}
+                  <div style={{ color:"rgba(255,255,255,0.6)", fontSize:22 }}>›</div>
+                </div>
+                <div style={{ padding:"12px 18px", display:"flex", alignItems:"center", gap:16 }}>
+                  <span style={{ fontSize:13, color:"#555" }}>👥 {g.players.length} players</span>
+                  <span style={{ fontSize:13, color:"#555" }}>🏓 {g.numCourts} court(s)</span>
+                  {g.isPrivate&&<span style={{ fontSize:12, color:C.purple }}>🔒 Private</span>}
+                  <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+                    <Btn small outline color={g.color} onClick={()=>openEditGroup(g)}>Edit</Btn>
+                    <Btn small outline color={C.red} onClick={()=>deleteGroup(g.id)}>Delete</Btn>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {mainTab==="history"&&(
+          <div>
+            {selectedHistory?(
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
+                  <Btn small outline color={C.green} onClick={()=>setSelectedHistory(null)}>← Back</Btn>
+                  <div>
+                    <div style={{ fontWeight:800, color:C.dark, fontSize:15 }}>{selectedHistory.groupName}</div>
+                    <div style={{ color:"#888", fontSize:12 }}>📅 {selectedHistory.date}{selectedHistory.location&&` · 📍 ${selectedHistory.location}`}</div>
+                  </div>
+                </div>
+                <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001", marginBottom:16 }}>
+                  <div style={{ fontWeight:800, color:C.dark, fontSize:15, marginBottom:12 }}>🏆 Final Standings</div>
+                  <LeaderboardTable lb={selectedHistory.leaderboard}/>
+                </div>
+                <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001" }}>
+                  <div style={{ fontWeight:800, color:C.dark, fontSize:14, marginBottom:12 }}>👥 Players ({selectedHistory.players.length})</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                    {selectedHistory.players.map(p=>(
+                      <span key={p.id} style={{ background:C.greenLight, color:C.dark, borderRadius:20, padding:"4px 14px", fontSize:13, fontWeight:600 }}>{p.name}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ):(
+              <div>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+                  <div style={{ fontWeight:800, color:C.dark, fontSize:17 }}>Tournament History</div>
+                  <Badge color={C.purple}>{history.length} saved</Badge>
+                </div>
+                {history.length===0&&(
+                  <div style={{ background:"#fff", borderRadius:12, padding:40, textAlign:"center", color:"#aaa", boxShadow:"0 2px 8px #0001" }}>No tournaments saved yet.</div>
+                )}
+                {history
+                  .filter(t=>!t.isPrivate||pwUnlocked[t.groupId])
+                  .map(t=>{
+                    const grp = groups.find(g=>g.id===t.groupId);
+                    const color = grp?.color||C.purple;
+                    return (
+                      <div key={t.id} style={{ background:"#fff", borderRadius:12, padding:18, marginBottom:12, boxShadow:"0 2px 8px #0001", borderLeft:`5px solid ${color}` }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                          <div>
+                            <div style={{ fontWeight:800, color:C.dark, fontSize:14 }}>
+                              {t.groupName}
+                              {t.isPrivate&&<span style={{ marginLeft:6, fontSize:12 }}>🔒</span>}
+                            </div>
+                            <div style={{ color:"#888", fontSize:12 }}>📅 {t.date}{t.location&&` · 📍 ${t.location}`}</div>
+                            <div style={{ color:"#aaa", fontSize:12 }}>{t.players.length} players · {t.rounds.length} rounds</div>
+                          </div>
+                          <div style={{ display:"flex", gap:8 }}>
+                            <Btn small outline color={C.green} onClick={()=>setSelectedHistory(t)}>View</Btn>
+                            <Btn small outline color={C.red} onClick={async()=>{ await deleteDoc(doc(db,"pb3_history",t.id)); }}>Del</Btn>
+                          </div>
+                        </div>
+                        {t.leaderboard.slice(0,3).map((p,i)=>(
+                          <div key={p.id} style={{ display:"flex", alignItems:"center", gap:8, fontSize:13, marginTop:4 }}>
+                            <span>{i===0?"🥇":i===1?"🥈":"🥉"}</span>
+                            <span style={{ fontWeight:700, color:C.dark }}>{p.name}</span>
+                            <span style={{ color:"#888" }}>{p.wins}W · {p.points}pts</span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Group create/edit modal */}
+      {showModal&&(
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.55)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:1000, padding:20, overflowY:"auto" }}>
+          <div style={{ background:"#fff", borderRadius:16, padding:28, width:"100%", maxWidth:440, boxShadow:"0 8px 32px #0004", margin:"auto" }}>
+            <div style={{ fontWeight:800, color:C.dark, fontSize:18, marginBottom:20 }}>{editingGroup?"Edit Group":"New Group"}</div>
+
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>GROUP NAME *</label>
+              <input value={mName} onChange={e=>setMName(e.target.value)} placeholder="e.g. City A Squad"
+                style={{ display:"block", width:"100%", marginTop:6, padding:"10px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:15, outline:"none", boxSizing:"border-box" }}/>
+            </div>
+
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>LOCATION</label>
+              <input value={mLocation} onChange={e=>setMLocation(e.target.value)} placeholder="e.g. Riverside Courts, City A"
+                style={{ display:"block", width:"100%", marginTop:6, padding:"10px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:15, outline:"none", boxSizing:"border-box" }}/>
+            </div>
+
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>GROUP COLOR</label>
+              <div style={{ display:"flex", gap:10, marginTop:8, flexWrap:"wrap" }}>
+                {GROUP_COLORS.map(col=>(
+                  <div key={col} onClick={()=>setMColor(col)} style={{
+                    width:32, height:32, borderRadius:"50%", background:col, cursor:"pointer",
+                    boxShadow: mColor===col?`0 0 0 3px #fff, 0 0 0 5px ${col}`:"none",
+                    transition:"box-shadow .15s"
+                  }}/>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>NUMBER OF COURTS</label>
+              <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                {[1,2,3,4,5,6,7].map(n=>(
+                  <button key={n} onClick={()=>setMCourts(n)} style={{
+                    width:36, height:36, borderRadius:8, border:"2px solid",
+                    borderColor:mCourts===n?mColor:C.grayMid,
+                    background:mCourts===n?mColor:"#fff",
+                    color:mCourts===n?"#fff":C.dark, fontWeight:700, cursor:"pointer"
+                  }}>{n}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Privacy toggle */}
+            <div style={{ marginBottom:mPrivate?14:24, background:mPrivate?C.greenLight:"#fafafa", border:`2px solid ${mPrivate?C.greenMid:C.grayMid}`, borderRadius:10, padding:"14px 16px" }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                <div>
+                  <div style={{ fontWeight:700, color:C.dark, fontSize:14 }}>
+                    {mPrivate?"🔒 Private Group":"🌐 Public Group"}
+                  </div>
+                  <div style={{ fontSize:12, color:"#888", marginTop:2 }}>
+                    {mPrivate?"Password required to view":"Anyone can see this group's results"}
+                  </div>
+                </div>
+                <button onClick={()=>setMPrivate(p=>!p)} style={{
+                  width:48, height:26, borderRadius:13, border:"none", cursor:"pointer",
+                  background:mPrivate?C.green:C.grayMid, position:"relative", transition:"background .2s"
+                }}>
+                  <div style={{
+                    position:"absolute", top:3, left:mPrivate?26:3, width:20, height:20,
+                    borderRadius:"50%", background:"#fff", transition:"left .2s"
+                  }}/>
+                </button>
+              </div>
+              {mPrivate&&(
+                <div style={{ marginTop:12 }}>
+                  <label style={{ fontSize:11, fontWeight:700, color:"#888", letterSpacing:1 }}>
+                    {editingGroup?"NEW PASSWORD (leave blank to keep current)":"PASSWORD *"}
+                  </label>
+                  <div style={{ position:"relative", marginTop:6 }}>
+                    <input
+                      type={mShowPw?"text":"password"}
+                      value={mPassword} onChange={e=>setMPassword(e.target.value)}
+                      placeholder={editingGroup?"Enter new password to change...":"Set a password..."}
+                      style={{ display:"block", width:"100%", padding:"10px 40px 10px 14px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:15, outline:"none", boxSizing:"border-box" }}/>
+                    <button onClick={()=>setMShowPw(p=>!p)} style={{ position:"absolute", right:10, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:16, color:"#aaa" }}>
+                      {mShowPw?"🙈":"👁"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display:"flex", gap:10 }}>
+              <Btn outline color={C.grayMid} textColor="#666" onClick={()=>setShowModal(false)} full>Cancel</Btn>
+              <Btn color={mColor} onClick={saveGroup} disabled={!mName.trim()||(mPrivate&&!editingGroup&&!mPassword.trim())} full>
+                {editingGroup?"Save Changes":"Create Group"}
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback modal */}
+      {showFeedback&&<FeedbackModal onClose={()=>setShowFeedback(false)}/>}
+    </div>
+  );
+}
