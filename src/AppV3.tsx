@@ -916,6 +916,21 @@ export default function App() {
 
   const selectedGroup = groups.find(g=>g.id===selectedGroupId)||null;
 
+  // Effective color mode — must be here (before ANY early returns) per Rules of Hooks
+  const effectiveColorMode: ColorMode = useMemo(()=>
+    (selectedGroup?.colorMode && selectedGroup.colorMode !== "normal")
+      ? selectedGroup.colorMode
+      : colorMode
+  , [selectedGroup?.colorMode, colorMode]);
+  C = THEMES[effectiveColorMode] || THEMES.normal;
+
+  if (loading) return (
+    <div style={{ minHeight:"100vh", background:C.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
+      <div style={{ fontSize:40 }}>🥒</div>
+      <div style={{ color:C.green, fontWeight:700, fontSize:18 }}>Loading...</div>
+    </div>
+  );
+
   const openNewGroup = () => {
     setEditingGroup(null);
     setMName(""); setMLocation(""); setMColor(GROUP_COLORS[groups.length%GROUP_COLORS.length]);
@@ -995,24 +1010,6 @@ export default function App() {
     });
     setGroupView("players"); setMainTab("history"); setSelectedGroupId(null);
   };
-
-  if (loading) return (
-    <div style={{ minHeight:"100vh", background:C.greenLight, display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
-      <div style={{ fontSize:40 }}>🥒</div>
-      <div style={{ color:C.green, fontWeight:700, fontSize:18 }}>Loading...</div>
-    </div>
-  );
-
-  // Apply group-level color mode override — must be BEFORE any early returns (Rules of Hooks)
-  const effectiveColorMode: ColorMode = useMemo(()=>
-    (selectedGroup?.colorMode && selectedGroup.colorMode !== "normal")
-      ? selectedGroup.colorMode
-      : colorMode
-  , [selectedGroup?.colorMode, colorMode]);
-
-  // Sync C to effective theme for group view (safe — no side effects, just assignment)
-  const effectiveTheme = THEMES[effectiveColorMode] || THEMES.normal;
-  C = effectiveTheme;
 
   // ── PASSWORD GATE ──
   if (selectedGroupId && selectedGroup?.isPrivate && !pwUnlocked[selectedGroupId]) {
