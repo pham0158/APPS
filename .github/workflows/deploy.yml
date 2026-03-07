@@ -25,8 +25,8 @@ jobs:
       - name: Build V3
         run: |
           cp src/AppV3.tsx src/App.tsx
-          sed -i "s|base:.*,|base: '/pickleball-v3/',|" vite.config.ts
-          npm run build
+          sed -i "s|base: '.*'|base: '/pickleball-v3/'|" vite.config.ts
+          npx vite build
           mkdir -p deploy/pickleball-v3
           cp -r dist/. deploy/pickleball-v3/
 
@@ -34,8 +34,8 @@ jobs:
       - name: Build V2
         run: |
           cp src/AppV2.tsx src/App.tsx
-          sed -i "s|base:.*,|base: '/pickleball-v2/',|" vite.config.ts
-          npm run build
+          sed -i "s|base: '.*'|base: '/pickleball-v2/'|" vite.config.ts
+          npx vite build
           mkdir -p deploy/pickleball-v2
           cp -r dist/. deploy/pickleball-v2/
 
@@ -43,8 +43,8 @@ jobs:
       - name: Build V1
         run: |
           cp src/AppV1.tsx src/App.tsx
-          sed -i "s|base:.*,|base: '/pickleball/',|" vite.config.ts
-          npm run build
+          sed -i "s|base: '.*'|base: '/pickleball/'|" vite.config.ts
+          npx vite build
           mkdir -p deploy/pickleball
           cp -r dist/. deploy/pickleball/
 
