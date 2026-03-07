@@ -1038,24 +1038,32 @@ export default function App() {
           {/* Color mode picker */}
           <div style={{ position:"relative" }}>
             <button onClick={()=>setShowColorMenu(p=>!p)} title="Accessibility / Color mode"
-              style={{ background:"rgba(255,255,255,0.15)", border: colorMode!=="normal"?"2px solid #fff":"none", borderRadius:8, color:"#fff", padding:"6px 10px", cursor:"pointer", fontSize:16 }}>
-              {colorMode==="deuteranopia"?"👁":colorMode==="highcontrast"?"⚡":"🎨"}
+              style={{
+                background: colorMode!=="normal" ? "#fff" : "rgba(255,255,255,0.2)",
+                border: "2px solid #fff",
+                borderRadius:20, color: colorMode!=="normal" ? C.green : "#fff",
+                padding:"5px 12px", cursor:"pointer", fontSize:12, fontWeight:800,
+                letterSpacing:0.5, display:"flex", alignItems:"center", gap:5,
+                whiteSpace:"nowrap",
+              }}>
+              {colorMode==="deuteranopia"?"👁 VISION":colorMode==="highcontrast"?"⚡ CONTRAST":"👁 VISION"}
             </button>
             {showColorMenu&&(
-              <div style={{ position:"absolute", right:0, top:"calc(100% + 8px)", background:"#fff", borderRadius:10, boxShadow:"0 4px 20px #0003", zIndex:500, minWidth:200, overflow:"hidden" }}>
-                <div style={{ padding:"10px 14px 6px", fontSize:11, fontWeight:700, color:"#aaa", letterSpacing:1 }}>COLOR MODE</div>
+              <div style={{ position:"absolute", right:0, top:"calc(100% + 8px)", background:"#fff", borderRadius:10, boxShadow:"0 8px 32px #0004", zIndex:500, minWidth:220, overflow:"hidden", border:"2px solid #eee" }}>
+                <div style={{ padding:"12px 16px 8px", fontSize:11, fontWeight:800, color:"#888", letterSpacing:2, background:"#f9f9f9", borderBottom:"1px solid #eee" }}>ACCESSIBILITY · COLOR MODE</div>
                 {(["normal","deuteranopia","highcontrast"] as ColorMode[]).map(mode=>(
                   <button key={mode} onClick={()=>{ changeColorMode(mode); setShowColorMenu(false); }} style={{
-                    display:"block", width:"100%", textAlign:"left", padding:"10px 14px",
+                    display:"block", width:"100%", textAlign:"left", padding:"12px 16px",
                     background: colorMode===mode ? C.greenLight : "#fff",
                     border:"none", cursor:"pointer", fontSize:14,
-                    fontWeight: colorMode===mode ? 700 : 400,
-                    color: colorMode===mode ? C.green : "#333",
-                    borderLeft: colorMode===mode ? `3px solid ${C.green}` : "3px solid transparent",
+                    fontWeight: colorMode===mode ? 800 : 400,
+                    color: colorMode===mode ? C.green : "#222",
+                    borderLeft: colorMode===mode ? `4px solid ${C.green}` : "4px solid transparent",
                   }}>
-                    {COLOR_MODE_LABELS[mode]}
-                    {mode==="deuteranopia"&&<div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>Red-green colorblind friendly</div>}
-                    {mode==="highcontrast"&&<div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>Maximum contrast</div>}
+                    <div>{COLOR_MODE_LABELS[mode]}{colorMode===mode&&<span style={{ marginLeft:8, fontSize:11, background:C.green, color:"#fff", borderRadius:10, padding:"2px 7px" }}>ON</span>}</div>
+                    {mode==="deuteranopia"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Safe for red-green colorblindness</div>}
+                    {mode==="highcontrast"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Maximum contrast &amp; readability</div>}
+                    {mode==="normal"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Default color scheme</div>}
                   </button>
                 ))}
               </div>
@@ -1166,24 +1174,32 @@ export default function App() {
           {/* Color mode picker */}
           <div style={{ position:"relative" }}>
             <button onClick={()=>setShowColorMenu(p=>!p)} title="Accessibility / Color mode"
-              style={{ background:"rgba(255,255,255,0.15)", border: colorMode!=="normal"?"2px solid #fff":"none", borderRadius:8, color:"#fff", padding:"6px 11px", cursor:"pointer", fontSize:16 }}>
-              {colorMode==="deuteranopia"?"👁":colorMode==="highcontrast"?"⚡":"🎨"}
+              style={{
+                background: colorMode!=="normal" ? "#fff" : "rgba(255,255,255,0.2)",
+                border: "2px solid #fff",
+                borderRadius:20, color: colorMode!=="normal" ? C.green : "#fff",
+                padding:"5px 12px", cursor:"pointer", fontSize:12, fontWeight:800,
+                letterSpacing:0.5, display:"flex", alignItems:"center", gap:5,
+                whiteSpace:"nowrap",
+              }}>
+              {colorMode==="deuteranopia"?"👁 VISION":colorMode==="highcontrast"?"⚡ CONTRAST":"👁 VISION"}
             </button>
             {showColorMenu&&(
-              <div style={{ position:"absolute", right:0, top:"calc(100% + 8px)", background:"#fff", borderRadius:10, boxShadow:"0 4px 20px #0003", zIndex:500, minWidth:200, overflow:"hidden" }}>
-                <div style={{ padding:"10px 14px 6px", fontSize:11, fontWeight:700, color:"#aaa", letterSpacing:1 }}>COLOR MODE</div>
+              <div style={{ position:"absolute", right:0, top:"calc(100% + 8px)", background:"#fff", borderRadius:10, boxShadow:"0 8px 32px #0004", zIndex:500, minWidth:220, overflow:"hidden", border:"2px solid #eee" }}>
+                <div style={{ padding:"12px 16px 8px", fontSize:11, fontWeight:800, color:"#888", letterSpacing:2, background:"#f9f9f9", borderBottom:"1px solid #eee" }}>ACCESSIBILITY · COLOR MODE</div>
                 {(["normal","deuteranopia","highcontrast"] as ColorMode[]).map(mode=>(
                   <button key={mode} onClick={()=>{ changeColorMode(mode); setShowColorMenu(false); }} style={{
-                    display:"block", width:"100%", textAlign:"left", padding:"10px 14px",
+                    display:"block", width:"100%", textAlign:"left", padding:"12px 16px",
                     background: colorMode===mode ? C.greenLight : "#fff",
                     border:"none", cursor:"pointer", fontSize:14,
-                    fontWeight: colorMode===mode ? 700 : 400,
-                    color: colorMode===mode ? C.green : "#333",
-                    borderLeft: colorMode===mode ? `3px solid ${C.green}` : "3px solid transparent",
+                    fontWeight: colorMode===mode ? 800 : 400,
+                    color: colorMode===mode ? C.green : "#222",
+                    borderLeft: colorMode===mode ? `4px solid ${C.green}` : "4px solid transparent",
                   }}>
-                    {COLOR_MODE_LABELS[mode]}
-                    {mode==="deuteranopia"&&<div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>Red-green colorblind friendly</div>}
-                    {mode==="highcontrast"&&<div style={{ fontSize:11, color:"#aaa", marginTop:2 }}>Maximum contrast</div>}
+                    <div>{COLOR_MODE_LABELS[mode]}{colorMode===mode&&<span style={{ marginLeft:8, fontSize:11, background:C.green, color:"#fff", borderRadius:10, padding:"2px 7px" }}>ON</span>}</div>
+                    {mode==="deuteranopia"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Safe for red-green colorblindness</div>}
+                    {mode==="highcontrast"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Maximum contrast &amp; readability</div>}
+                    {mode==="normal"&&<div style={{ fontSize:11, color:"#999", marginTop:2 }}>Default color scheme</div>}
                   </button>
                 ))}
               </div>
