@@ -638,6 +638,8 @@ let previewSource = null;
 let isPlaying = false;
 let analyserNode = null;
 let animFrameId = null;
+let previewStartTime = 0;
+let previewTimerID = null;
 
 // ─── DOM ───────────────────────────────────────────────────────────────
 const dropZone = document.getElementById('drop-zone');
@@ -757,6 +759,26 @@ function clearAll() {
 function setStatus(state, msg) {
   statusDot.className = 'status-dot' + (state ? ` ${state}` : '');
   statusText.textContent = msg;
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function startPreviewTimer() {
+  if (previewTimerID) clearInterval(previewTimerID);
+  const total = enhancedBuffer ? enhancedBuffer.duration : 0;
+  previewTimerID = setInterval(() => {
+    if (!isPlaying || !audioCtx) return;
+    const elapsed = audioCtx.currentTime - previewStartTime;
+    setStatus('processing', `▶ Playing — ${formatTime(elapsed)} / ${formatTime(total)}`);
+  }, 250);
+}
+
+function stopPreviewTimer() {
+  if (previewTimerID) { clearInterval(previewTimerID); previewTimerID = null; }
 }
 
 // ─── Visualizer ────────────────────────────────────────────────────────
@@ -975,10 +997,18 @@ previewBtn.addEventListener('click', () => {
   previewSource.connect(previewGain);
   startVisualizer(previewSource);
   previewGain.connect(audioCtx.destination);
+  previewStartTime = audioCtx.currentTime;
   previewSource.start(0);
-  previewSource.onended = () => { isPlaying = false; previewBtn.textContent = '▶ Preview'; stopVisualizer(); };
+  previewSource.onended = () => {
+    isPlaying = false;
+    previewBtn.textContent = '▶ Preview';
+    stopVisualizer();
+    stopPreviewTimer();
+    setStatus('done', '✓ Enhancement complete — preview or download below');
+  };
   isPlaying = true;
   previewBtn.textContent = '⏹ Stop';
+  startPreviewTimer();
 });
 
 function stopPreview() {
@@ -986,6 +1016,7 @@ function stopPreview() {
   isPlaying = false;
   previewBtn.textContent = '▶ Preview';
   stopVisualizer();
+  stopPreviewTimer();
 }
 
 // ─── Download ───────────────────────────────────────────────────────────
