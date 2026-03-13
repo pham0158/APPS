@@ -47,6 +47,9 @@ jobs:
       # ── Homepage ─────────────────────────────────────────────
       - name: Copy homepage
         run: cp homepage.html deploy/index.html
+      # ── CNAME ────────────────────────────────────────────────
+      - name: Copy CNAME
+        run: cp CNAME deploy/CNAME
       # ── Publish ──────────────────────────────────────────────
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
