@@ -602,7 +602,7 @@
   </header>
 
   <h1>Make Your Music<br><em>Crystal Clear</em></h1>
-  <p class="tagline">Waveform video · Lyric sync · HD Export · Studio-grade processing</p>
+  <p class="tagline">Waveform video · AI lyric sync · 4K MP4 export · Studio-grade processing</p>
 
   <!-- Audio Drop Zone -->
   <div class="drop-zone" id="drop-zone">
@@ -695,7 +695,7 @@
       <div class="control-label">Record<small>Plays + captures</small></div>
       <button class="btn-record" id="record-btn" disabled>
         <span class="rec-dot"></span>
-        <span id="record-label">Record Video</span>
+        <span id="record-label">Record 4K MP4</span>
       </button>
     </div>
   </div>
@@ -837,11 +837,14 @@ let whisperWorkerModel = null;
 
 // Recording
 let isRecording = false;
-let mediaRecorder = null;
-let recChunks = [];
-let recAudioDest = null;
 let selectedRatio = '916'; // '916' or '169'
 let recFrameCount = 0;
+let recVideoFrameCount = 0;
+// WebCodecs pipeline (4K MP4)
+let recVideoEncoder = null;
+let recAudioEncoder = null;
+let recMuxer = null;
+let recMuxTarget = null;
 
 // ─── DOM ───────────────────────────────────────────────────────────────
 const dropZone      = document.getElementById('drop-zone');
@@ -1175,12 +1178,20 @@ function startVisualizer(source) {
       ctx.fillRect(i * barW * 1.1, canvas.height - barH, barW, barH);
     }
 
-    // ── Recording canvas (HD frame) ─────────────────────────────────
+    // ── Recording canvas + WebCodecs encode ─────────────────────────
     recFrameCount++;
-    if (isRecording && recFrameCount % 2 === 0) {
-      const elapsed = audioCtx ? audioCtx.currentTime - previewStartTime : 0;
+    if (isRecording && recFrameCount % 2 === 0 && recVideoEncoder) {
+      const elapsed  = audioCtx ? audioCtx.currentTime - previewStartTime : 0;
       const duration = enhancedBuffer ? enhancedBuffer.duration : 0;
       drawRecordingFrame(dataArr, bufLen, getLyricAt(elapsed), elapsed, duration);
+      // Only encode if the queue isn't backed up
+      if (recVideoEncoder.encodeQueueSize < 20) {
+        const ts    = Math.round(elapsed * 1_000_000); // microseconds
+        const frame = new VideoFrame(recCanvas, { timestamp: ts, duration: 33333 });
+        recVideoEncoder.encode(frame, { keyFrame: recVideoFrameCount % 60 === 0 });
+        frame.close();
+        recVideoFrameCount++;
+      }
     }
   }
   draw();
@@ -1493,10 +1504,10 @@ async function processAudio(inputBuffer) {
 // ─── Preview ─────────────────────────────────────────────────────────────
 previewBtn.addEventListener('click', () => {
   if (isPlaying) { stopPreview(); return; }
-  startPlayback(false);
+  startPlayback();
 });
 
-function startPlayback(forRecording) {
+function startPlayback() {
   if (!enhancedBuffer || !audioCtx) return;
   if (audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -1506,12 +1517,6 @@ function startPlayback(forRecording) {
   const previewGain = audioCtx.createGain();
   previewGain.gain.value = 1;
   previewSource.connect(previewGain);
-
-  // Also route to recording destination if recording
-  if (forRecording && recAudioDest) {
-    previewGain.connect(recAudioDest);
-  }
-
   startVisualizer(previewSource);
   previewGain.connect(audioCtx.destination);
   previewStartTime = audioCtx.currentTime;
@@ -1541,119 +1546,137 @@ function stopPreview() {
   hideLyric();
 }
 
-// ─── Video Recording ─────────────────────────────────────────────────────
+// ─── Video Recording (WebCodecs → 4K MP4) ────────────────────────────────
 recordBtn.addEventListener('click', () => {
-  if (isRecording) {
-    stopPreview(); // triggers finalizeRecording via onended
-    return;
-  }
+  if (isRecording) { stopPreview(); return; } // onended → finalizeRecording
   startRecording();
 });
 
-function startRecording() {
+async function startRecording() {
   if (!enhancedBuffer || !audioCtx) return;
   if (isPlaying) stopPreview();
 
-  // Set recording canvas resolution
-  if (selectedRatio === '916') {
-    recCanvas.width  = 1080;
-    recCanvas.height = 1920;
-  } else {
-    recCanvas.width  = 1920;
-    recCanvas.height = 1080;
+  if (!('VideoEncoder' in window) || !('AudioEncoder' in window)) {
+    setStatus('', '4K MP4 requires Chrome 94+, Edge 94+, or Safari 16.4+');
+    return;
   }
 
-  // Draw first frame immediately (black with logo)
+  // 4K canvas
+  recCanvas.width  = selectedRatio === '916' ? 2160 : 3840;
+  recCanvas.height = selectedRatio === '916' ? 3840 : 2160;
   recCtx.fillStyle = '#080a0f';
   recCtx.fillRect(0, 0, recCanvas.width, recCanvas.height);
 
-  // Audio destination for recording
-  recAudioDest = audioCtx.createMediaStreamDestination();
+  recordBtn.disabled = true;
+  setStatus('processing', 'Setting up 4K encoder…');
 
-  // Canvas stream
-  let canvasStream;
   try {
-    canvasStream = recCanvas.captureStream(30);
-  } catch(e) {
-    setStatus('', 'Error: canvas.captureStream() not supported in this browser');
+    // ── Load mp4-muxer ────────────────────────────────────────────
+    const { Muxer, ArrayBufferTarget } = await import(
+      'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs'
+    );
+    recMuxTarget = new ArrayBufferTarget();
+    recMuxer = new Muxer({
+      target: recMuxTarget,
+      video: { codec: 'avc', width: recCanvas.width, height: recCanvas.height },
+      audio: { codec: 'aac', sampleRate: enhancedBuffer.sampleRate, numberOfChannels: enhancedBuffer.numberOfChannels },
+      fastStart: 'in-memory',
+    });
+
+    // ── VideoEncoder ──────────────────────────────────────────────
+    recVideoEncoder = new VideoEncoder({
+      output: (chunk, meta) => recMuxer.addVideoChunk(chunk, meta),
+      error:  (e) => console.error('VideoEncoder:', e),
+    });
+    recVideoEncoder.configure({
+      codec: 'avc1.640034',      // H.264 High Profile Level 5.2 (covers 4K portrait)
+      width:  recCanvas.width,
+      height: recCanvas.height,
+      bitrate: 40_000_000,       // 40 Mbps
+      framerate: 30,
+      bitrateMode: 'variable',
+      avc: { format: 'avc' },
+    });
+
+    // ── AudioEncoder — pre-encode entire buffer up front ─────────
+    recAudioEncoder = new AudioEncoder({
+      output: (chunk, meta) => recMuxer.addAudioChunk(chunk, meta),
+      error:  (e) => console.error('AudioEncoder:', e),
+    });
+    recAudioEncoder.configure({
+      codec: 'mp4a.40.2',        // AAC-LC
+      sampleRate: enhancedBuffer.sampleRate,
+      numberOfChannels: enhancedBuffer.numberOfChannels,
+      bitrate: 256_000,
+    });
+
+    const sr    = enhancedBuffer.sampleRate;
+    const numCh = enhancedBuffer.numberOfChannels;
+    const BLOCK = 4096;
+    const chData = Array.from({ length: numCh }, (_, c) => enhancedBuffer.getChannelData(c));
+    for (let off = 0; off < enhancedBuffer.length; off += BLOCK) {
+      const frames = Math.min(BLOCK, enhancedBuffer.length - off);
+      const planar = new Float32Array(frames * numCh);
+      for (let c = 0; c < numCh; c++) planar.set(chData[c].subarray(off, off + frames), c * frames);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: sr, numberOfFrames: frames,
+        numberOfChannels: numCh, timestamp: Math.round((off / sr) * 1_000_000), data: planar });
+      recAudioEncoder.encode(ad);
+      ad.close();
+    }
+    // Let audio encode in background while video records
+
+  } catch(err) {
+    setStatus('', `Setup error: ${err.message}`);
+    cleanupRecording();
     return;
   }
-
-  // Combine canvas + audio
-  const combinedStream = new MediaStream([
-    ...canvasStream.getVideoTracks(),
-    ...recAudioDest.stream.getAudioTracks(),
-  ]);
-
-  // Pick best supported codec
-  const mimeType = getSupportedMimeType();
-  try {
-    mediaRecorder = new MediaRecorder(combinedStream, { mimeType });
-  } catch(e) {
-    setStatus('', `Error: MediaRecorder not supported (${e.message})`);
-    return;
-  }
-
-  recChunks = [];
-  mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recChunks.push(e.data); };
-  mediaRecorder.start(100); // collect data every 100ms
 
   isRecording = true;
   recFrameCount = 0;
+  recVideoFrameCount = 0;
+  recordBtn.disabled = false;
   recordBtn.classList.add('recording');
   recordLabel.textContent = 'Stop Recording';
   previewBtn.disabled = true;
-
-  setStatus('recording', '⏺ Recording — audio is playing and video is being captured');
-
-  // Start playback with audio routed to recording destination too
-  startPlayback(true);
+  setStatus('recording', '⏺ Recording 4K MP4 — waveform is being captured');
+  startPlayback();
 }
 
-function finalizeRecording() {
-  if (!mediaRecorder || mediaRecorder.state === 'inactive') {
-    cleanupRecording();
-    return;
-  }
+async function finalizeRecording() {
+  isRecording = false; // stop RAF from encoding more frames
+  setStatus('processing', 'Finalizing 4K MP4…');
+  recordBtn.disabled = true;
 
-  mediaRecorder.onstop = () => {
-    const mimeType = mediaRecorder.mimeType || 'video/webm';
-    const ext      = mimeType.includes('mp4') ? 'mp4' : 'webm';
-    const blob     = new Blob(recChunks, { type: mimeType });
-    const url      = URL.createObjectURL(blob);
-    const a        = document.createElement('a');
-    const base     = (currentFile?.name || 'audio').replace(/\.[^.]+$/, '');
-    const ratio    = selectedRatio === '916' ? '9x16' : '16x9';
-    a.href         = url;
-    a.download     = `${base}_SONIQ_${ratio}.${ext}`;
-    a.click();
+  try {
+    await recVideoEncoder.flush();
+    recVideoEncoder.close();
+    await recAudioEncoder.flush();
+    recAudioEncoder.close();
+    recMuxer.finalize();
+
+    const blob  = new Blob([recMuxTarget.buffer], { type: 'video/mp4' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    const base  = (currentFile?.name || 'audio').replace(/\.[^.]+$/, '');
+    const ratio = selectedRatio === '916' ? '9x16' : '16x9';
+    a.href = url; a.download = `${base}_SONIQ_4K_${ratio}.mp4`; a.click();
     URL.revokeObjectURL(url);
-    setStatus('done', `✓ Video saved — ${ratio} HD video downloaded`);
-    cleanupRecording();
-  };
-
-  mediaRecorder.stop();
+    setStatus('done', `✓ 4K MP4 downloaded — ${ratio}`);
+  } catch(err) {
+    setStatus('', `Error saving MP4: ${err.message}`);
+    console.error(err);
+  }
+  cleanupRecording();
 }
 
 function cleanupRecording() {
   isRecording = false;
-  mediaRecorder = null;
-  recAudioDest = null;
+  recVideoEncoder = null; recAudioEncoder = null;
+  recMuxer = null; recMuxTarget = null;
+  recordBtn.disabled = false;
   recordBtn.classList.remove('recording');
-  recordLabel.textContent = 'Record Video';
+  recordLabel.textContent = 'Record 4K MP4';
   previewBtn.disabled = false;
-}
-
-function getSupportedMimeType() {
-  const types = [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
-    'video/mp4',
-  ];
-  return types.find(t => {
-    try { return MediaRecorder.isTypeSupported(t); } catch(e) { return false; }
-  }) || 'video/webm';
 }
 
 // ─── Download WAV ────────────────────────────────────────────────────────
@@ -1740,13 +1763,13 @@ self.onmessage = async ({ data }) => {
         progress_callback: (p) => self.postMessage({ type: 'progress', ...p }),
       });
     }
-    self.postMessage({ type: 'status', msg: 'Transcribing audio — detecting vocals and language…' });
+    self.postMessage({ type: 'status', msg: 'Transcribing audio — detecting words and timing…' });
     const result = await pipe(audio, {
       task: 'transcribe',
       language: null,
-      return_timestamps: true,
-      chunk_length_s: 30,
-      stride_length_s: 5,
+      return_timestamps: 'word',  // word-level timestamps for precise lyric alignment
+      chunk_length_s: 20,         // smaller chunks = better timing granularity
+      stride_length_s: 3,
     });
     self.postMessage({ type: 'result', chunks: result.chunks ?? [], language: result.language ?? null });
   } catch (err) {
@@ -1837,18 +1860,17 @@ async function autoSyncLyrics() {
 
     if (!chunks.length) throw new Error('No speech detected in audio');
 
-    // Build timed lyrics from result
+    // chunks are now word-level: [{timestamp:[start,end], text:" word"}]
     if (lrcRawLines.length > 0) {
-      lrcData = alignLyricsToChunks(lrcRawLines, chunks);
-      lrcMeta.textContent = `${lrcData.length} lines aligned · timing synced by AI`;
+      lrcData = alignLyricsToWords(lrcRawLines, chunks);
+      lrcMeta.textContent = `${lrcData.length} lines aligned to vocals · AI timing`;
     } else if (lrcData.length > 0) {
       const lines = lrcData.map(l => l.text);
-      lrcData = alignLyricsToChunks(lines, chunks);
-      lrcMeta.textContent = `${lrcData.length} lines re-timed · timestamps updated by AI`;
+      lrcData = alignLyricsToWords(lines, chunks);
+      lrcMeta.textContent = `${lrcData.length} lines re-timed to vocals · AI timing`;
     } else {
-      lrcData = chunks
-        .filter(c => c.timestamp?.[0] != null && c.text?.trim())
-        .map(c => ({ time: c.timestamp[0], text: c.text.trim() }));
+      // Group word chunks into lyric-sized phrases (~7 words each)
+      lrcData = groupWordsIntoLines(chunks, 7);
       lrcMeta.textContent = `${lrcData.length} captions generated by AI`;
       lrcLabel.textContent = 'AI Transcription';
       lrcZone.classList.add('lrc-loaded');
@@ -1882,71 +1904,100 @@ async function resampleTo16k(audioBuffer) {
   return rendered.getChannelData(0); // Float32Array at 16 kHz
 }
 
-// Align an array of lyric text lines to Whisper chunks using fuzzy word matching.
-// Returns [{time, text}] sorted by time.
-function alignLyricsToChunks(lines, chunks) {
-  // Build a flat word timeline from chunks
-  const wordPool = [];
-  for (const chunk of chunks) {
-    const t0 = chunk.timestamp?.[0] ?? 0;
-    const t1 = chunk.timestamp?.[1] ?? t0;
-    const words = normalizeWords(chunk.text);
-    if (words.length) {
-      const step = (t1 - t0) / words.length;
-      words.forEach((w, i) => wordPool.push({ word: w, time: t0 + i * step }));
-    }
-  }
+// Build a flat word timeline from word-level Whisper chunks.
+// Each chunk: {timestamp:[start,end], text:" word"}
+function buildWordTimeline(chunks) {
+  return chunks
+    .filter(c => c.timestamp?.[0] != null && c.text?.trim())
+    .map(c => ({ norm: normWord(c.text), time: c.timestamp[0], raw: c.text.trim() }))
+    .filter(w => w.norm.length > 0);
+}
+
+// Align lyric lines to word-level timestamps.
+// For each line, find the first word of the line in the timeline and use its timestamp.
+function alignLyricsToWords(lines, chunks) {
+  const words = buildWordTimeline(chunks);
+  if (!words.length) return lines.map((text, i) => ({ time: i * 3, text }));
 
   const result = [];
-  let searchFrom = 0; // advance search window to avoid going backwards
+  let minIdx = 0;
 
   for (const line of lines) {
-    const lineWords = normalizeWords(line);
-    if (!lineWords.length) continue;
+    const lineNorm = line.split(/\s+/).map(normWord).filter(Boolean);
+    if (!lineNorm.length) continue;
 
-    // Search for the best matching window of consecutive words
+    // Score each position: how many of first N line-words match the words at that position
+    const checkLen = Math.min(lineNorm.length, 4);
     let bestScore = -1;
-    let bestIdx   = searchFrom;
-    const windowSize = Math.max(lineWords.length * 2, 8);
+    let bestTime  = words[minIdx].time;
+    let bestIdx   = minIdx;
 
-    for (let i = searchFrom; i < Math.min(wordPool.length, searchFrom + wordPool.length); i++) {
-      // Score: fraction of lineWords found in a local window starting at i
-      const window = wordPool.slice(i, i + windowSize).map(w => w.word);
-      const windowSet = new Set(window);
-      const matches = lineWords.filter(w => windowSet.has(w)).length;
-      const score   = matches / lineWords.length;
+    // Search forward but cap the window to avoid O(n²) on long songs
+    const limit = Math.min(words.length, minIdx + Math.max(80, (words.length - minIdx) / 2));
+    for (let i = minIdx; i < limit; i++) {
+      let score = 0;
+      for (let j = 0; j < checkLen; j++) {
+        if ((i + j) < words.length && wordsSimilar(words[i + j].norm, lineNorm[j])) score++;
+      }
       if (score > bestScore) {
         bestScore = score;
+        bestTime  = words[i].time;
         bestIdx   = i;
+        if (score === checkLen) break; // perfect match
       }
-      if (score > 0.85) break; // good enough
     }
 
-    result.push({ time: wordPool[bestIdx]?.time ?? 0, text: line });
-    searchFrom = bestIdx + Math.max(1, Math.floor(lineWords.length * 0.5));
+    result.push({ time: bestTime, text: line });
+    // Advance past the words we just matched
+    minIdx = Math.min(bestIdx + Math.max(1, lineNorm.length - 1), words.length - 1);
   }
 
-  // Sort and deduplicate timestamps (min 0.3s apart)
+  // Enforce minimum gap between lines (0.2 s)
   result.sort((a, b) => a.time - b.time);
   for (let i = 1; i < result.length; i++) {
-    if (result[i].time - result[i-1].time < 0.3) {
-      result[i].time = result[i-1].time + 0.3;
+    if (result[i].time - result[i - 1].time < 0.2) {
+      result[i].time = result[i - 1].time + 0.2;
     }
   }
-
   return result;
 }
 
-function normalizeWords(text) {
-  return text
-    .toLowerCase()
-    .normalize('NFD')                        // decompose Vietnamese diacritics
-    .replace(/[\u0300-\u036f]/g, '')         // strip combining marks
-    .replace(/đ/g, 'd').replace(/Đ/g, 'd')  // handle đ
-    .replace(/[^\w\s]/g, ' ')               // strip punctuation
-    .split(/\s+/)
-    .filter(w => w.length > 1);             // skip single chars
+// Group word-level chunks into lyric lines of ~wordsPerLine words.
+function groupWordsIntoLines(chunks, wordsPerLine) {
+  const words = buildWordTimeline(chunks);
+  const result = [];
+  let group = [], groupStart = null;
+  for (const w of words) {
+    if (groupStart === null) groupStart = w.time;
+    group.push(w.raw);
+    if (group.length >= wordsPerLine) {
+      result.push({ time: groupStart, text: group.join(' ') });
+      group = []; groupStart = null;
+    }
+  }
+  if (group.length) result.push({ time: groupStart ?? 0, text: group.join(' ') });
+  return result;
 }
+
+function normWord(text) {
+  return text.trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')   // strip Vietnamese/accented diacritics
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^\w]/g, '');            // keep alphanumeric only
+}
+
+function wordsSimilar(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  // Prefix match for partial Vietnamese syllables
+  const minLen = Math.min(a.length, b.length);
+  if (minLen >= 3 && a.slice(0, minLen) === b.slice(0, minLen)) return true;
+  return false;
+}
+
+// (normalizeWords replaced by normWord + buildWordTimeline above)
 
 function langName(code) {
   const map = {
