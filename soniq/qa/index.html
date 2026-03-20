@@ -498,6 +498,12 @@
 
   .full-panel { grid-column: 1 / -1; }
 
+  /* Download group */
+  .download-group { display: flex; gap: 8px; }
+  .btn-mp4 { border-color: var(--accent3); color: var(--accent3); }
+  .btn-mp4:hover { border-color: var(--accent3); color: var(--accent3); background: rgba(123,97,255,0.08); box-shadow: 0 0 16px rgba(123,97,255,0.3); }
+  .btn-mp4:disabled { opacity: 0.4; cursor: not-allowed; }
+
   /* AI Auto-Sync Panel */
   .autosync-panel {
     background: var(--panel);
@@ -810,7 +816,10 @@
   <div class="actions">
     <button class="btn-primary" id="enhance-btn" disabled>⚡ Enhance Audio</button>
     <button class="btn-secondary" id="preview-btn" disabled>▶ Preview</button>
-    <button class="btn-secondary" id="download-btn" disabled>⬇ Download WAV</button>
+    <div class="download-group">
+      <button class="btn-secondary" id="download-wav-btn" disabled>⬇ WAV</button>
+      <button class="btn-secondary btn-mp4" id="download-mp4-btn" disabled>⬇ 4K MP4</button>
+    </div>
   </div>
 </div>
 
@@ -855,7 +864,8 @@ const fileMeta      = document.getElementById('file-meta');
 const clearBtn      = document.getElementById('clear-btn');
 const enhanceBtn    = document.getElementById('enhance-btn');
 const previewBtn    = document.getElementById('preview-btn');
-const downloadBtn   = document.getElementById('download-btn');
+const downloadWavBtn= document.getElementById('download-wav-btn');
+const downloadMp4Btn= document.getElementById('download-mp4-btn');
 const recordBtn     = document.getElementById('record-btn');
 const recordLabel   = document.getElementById('record-label');
 const statusDot     = document.getElementById('status-dot');
@@ -1045,7 +1055,8 @@ function loadFile(file) {
   setStatus('ready', 'File loaded — ready to enhance');
   enhanceBtn.disabled = false;
   previewBtn.disabled = true;
-  downloadBtn.disabled = true;
+  downloadWavBtn.disabled = true;
+  downloadMp4Btn.disabled = true;
   recordBtn.disabled = true;
   autosyncBtn.disabled = false;
 
@@ -1067,7 +1078,8 @@ function clearAll() {
   dropZone.style.display = '';
   enhanceBtn.disabled = true;
   previewBtn.disabled = true;
-  downloadBtn.disabled = true;
+  downloadWavBtn.disabled = true;
+  downloadMp4Btn.disabled = true;
   recordBtn.disabled = true;
   autosyncBtn.disabled = true;
   progressWrap.classList.remove('visible');
@@ -1232,9 +1244,9 @@ function drawRecordingFrame(freqData, bufLen, lyric, elapsed, duration) {
   recCtx.fillStyle = vignette;
   recCtx.fillRect(0, 0, W, H);
 
-  // ── Logo ──────────────────────────────────────────────────────────
+  // ── Logo + Title (compact top bar) ───────────────────────────────
   const logoSize = isPortrait ? 34 : 26;
-  const logoY    = isPortrait ? pad + logoSize : pad;
+  const logoY    = pad + logoSize;
   recCtx.font = `700 ${logoSize}px 'Space Mono', monospace`;
   recCtx.textAlign = 'left';
   recCtx.fillStyle = '#00e5ff';
@@ -1255,7 +1267,7 @@ function drawRecordingFrame(freqData, bufLen, lyric, elapsed, duration) {
 
   // ── Song Title ────────────────────────────────────────────────────
   const titleSize = isPortrait ? 52 : 38;
-  const titleY    = isPortrait ? logoY + 120 : logoY + 80;
+  const titleY    = logoY + Math.round(logoSize * 0.3) + titleSize;
   const songTitle = currentFile ? currentFile.name.replace(/\.[^.]+$/, '') : 'Unknown Track';
 
   const titleGrad = recCtx.createLinearGradient(pad, 0, W - pad, 0);
@@ -1274,8 +1286,8 @@ function drawRecordingFrame(freqData, bufLen, lyric, elapsed, duration) {
   recCtx.fillText(displayTitle, W / 2, titleY);
 
   // ── Waveform Bars (mirrored) ──────────────────────────────────────
-  const waveTop    = isPortrait ? titleY + 80  : titleY + 60;
-  const waveH      = isPortrait ? H * 0.38     : H * 0.40;
+  const waveTop    = titleY + (isPortrait ? 40 : 30);
+  const waveH      = isPortrait ? H * 0.70     : H * 0.80;
   const waveCenter = waveTop + waveH / 2;
   const numBars    = isPortrait ? 72 : 120;
   const totalW     = W - pad * 2;
@@ -1330,8 +1342,8 @@ function drawRecordingFrame(freqData, bufLen, lyric, elapsed, duration) {
   if (lyric) {
     const lyricSize = isPortrait ? 54 : 42;
     const lyricY    = isPortrait
-      ? waveTop + waveH + lyricSize + 60
-      : waveTop + waveH + lyricSize + 40;
+      ? waveTop + waveH + lyricSize + 30
+      : waveTop + waveH + lyricSize + 20;
 
     const lyricGrad = recCtx.createLinearGradient(pad, 0, W - pad, 0);
     lyricGrad.addColorStop(0, '#00e5ff');
@@ -1408,9 +1420,10 @@ enhanceBtn.addEventListener('click', async () => {
     progressFill.style.width = '100%';
     await new Promise(r => setTimeout(r, 400));
     progressWrap.classList.remove('visible');
-    setStatus('done', '✓ Enhancement complete — preview, download, or record a video');
+    setStatus('done', '✓ Enhancement complete — preview, download WAV / 4K MP4, or live-record');
     previewBtn.disabled = false;
-    downloadBtn.disabled = false;
+    downloadWavBtn.disabled = false;
+    downloadMp4Btn.disabled = false;
     recordBtn.disabled = false;
     drawStaticWave(enhancedBuffer);
   } catch(err) {
@@ -1680,10 +1693,10 @@ function cleanupRecording() {
 }
 
 // ─── Download WAV ────────────────────────────────────────────────────────
-downloadBtn.addEventListener('click', async () => {
+downloadWavBtn.addEventListener('click', async () => {
   if (!enhancedBuffer) return;
   setStatus('processing', 'Rendering WAV file…');
-  downloadBtn.disabled = true;
+  downloadWavBtn.disabled = true;
   try {
     const wavBlob = bufferToWav(enhancedBuffer);
     const url = URL.createObjectURL(wavBlob);
@@ -1697,7 +1710,7 @@ downloadBtn.addEventListener('click', async () => {
   } catch(err) {
     setStatus('', `Error: ${err.message}`);
   }
-  downloadBtn.disabled = false;
+  downloadWavBtn.disabled = false;
 });
 
 function bufferToWav(buffer) {
@@ -1737,6 +1750,178 @@ function bufferToWav(buffer) {
     }
   }
   return new Blob([arrBuf], { type: 'audio/wav' });
+}
+
+// ─── Offline 4K MP4 Export ───────────────────────────────────────────────
+// Radix-2 Cooley-Tukey FFT (in-place, power-of-2 N)
+function fftInPlace(re, im) {
+  const N = re.length;
+  let j = 0;
+  for (let i = 1; i < N; i++) {
+    let bit = N >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) {
+      [re[i], re[j]] = [re[j], re[i]];
+      [im[i], im[j]] = [im[j], im[i]];
+    }
+  }
+  for (let len = 2; len <= N; len <<= 1) {
+    const ang = -2 * Math.PI / len;
+    const wRe = Math.cos(ang), wIm = Math.sin(ang);
+    for (let i = 0; i < N; i += len) {
+      let cRe = 1, cIm = 0;
+      for (let k = 0; k < len >> 1; k++) {
+        const uRe = re[i+k], uIm = im[i+k];
+        const half = len >> 1;
+        const vRe = re[i+k+half]*cRe - im[i+k+half]*cIm;
+        const vIm = re[i+k+half]*cIm + im[i+k+half]*cRe;
+        re[i+k] = uRe + vRe; im[i+k] = uIm + vIm;
+        re[i+k+half] = uRe - vRe; im[i+k+half] = uIm - vIm;
+        const nc = cRe*wRe - cIm*wIm;
+        cIm = cRe*wIm + cIm*wRe; cRe = nc;
+      }
+    }
+  }
+}
+
+downloadMp4Btn.addEventListener('click', exportVideoOffline);
+
+async function exportVideoOffline() {
+  if (!enhancedBuffer) return;
+  if (!('VideoEncoder' in window) || !('AudioEncoder' in window)) {
+    setStatus('', '4K MP4 export requires Chrome 94+, Edge 94+, or Safari 16.4+');
+    return;
+  }
+
+  const ratio = selectedRatio;
+  const W = ratio === '916' ? 2160 : 3840;
+  const H = ratio === '916' ? 3840 : 2160;
+  recCanvas.width = W; recCanvas.height = H;
+
+  downloadMp4Btn.disabled = true;
+  downloadWavBtn.disabled = true;
+
+  const FPS      = 30;
+  const duration = enhancedBuffer.duration;
+  const total    = Math.ceil(duration * FPS);
+  const sr       = enhancedBuffer.sampleRate;
+  const numCh    = enhancedBuffer.numberOfChannels;
+  const FFT_SIZE = 1024;
+  const bufLen   = FFT_SIZE >> 1;
+
+  // ── Pre-compute frequency data for every frame ─────────────────
+  setStatus('processing', 'Pre-computing frequency data…');
+  await new Promise(r => setTimeout(r, 0));
+
+  const monoData = new Float32Array(enhancedBuffer.length);
+  for (let c = 0; c < numCh; c++) {
+    const ch = enhancedBuffer.getChannelData(c);
+    for (let i = 0; i < ch.length; i++) monoData[i] += ch[i] / numCh;
+  }
+
+  const hann = new Float32Array(FFT_SIZE);
+  for (let i = 0; i < FFT_SIZE; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (FFT_SIZE - 1));
+
+  const allFreq = new Array(total);
+  for (let f = 0; f < total; f++) {
+    const start = Math.floor((f / FPS) * sr);
+    const re = new Float32Array(FFT_SIZE);
+    const im = new Float32Array(FFT_SIZE);
+    for (let i = 0; i < FFT_SIZE; i++) {
+      const idx = start + i;
+      re[i] = (idx < monoData.length ? monoData[idx] : 0) * hann[i];
+    }
+    fftInPlace(re, im);
+    const freq = new Uint8Array(bufLen);
+    for (let i = 0; i < bufLen; i++) {
+      const mag = Math.sqrt(re[i]*re[i] + im[i]*im[i]);
+      const db  = 20 * Math.log10(Math.max(mag, 1e-10)) + 100;
+      freq[i]   = Math.max(0, Math.min(255, db * 2.55));
+    }
+    allFreq[f] = freq;
+    if (f % 500 === 499) await new Promise(r => setTimeout(r, 0));
+  }
+
+  // ── Set up encoders ────────────────────────────────────────────
+  setStatus('processing', 'Setting up 4K encoder…');
+  try {
+    const { Muxer, ArrayBufferTarget } = await import(
+      'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.mjs'
+    );
+    const muxTarget = new ArrayBufferTarget();
+    const muxer = new Muxer({
+      target: muxTarget,
+      video: { codec: 'avc', width: W, height: H },
+      audio: { codec: 'aac', sampleRate: sr, numberOfChannels: numCh },
+      fastStart: 'in-memory',
+    });
+
+    const vidEnc = new VideoEncoder({
+      output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+      error:  (e) => console.error('VideoEncoder:', e),
+    });
+    vidEnc.configure({
+      codec: 'avc1.640034', width: W, height: H,
+      bitrate: 40_000_000, framerate: FPS, bitrateMode: 'variable', avc: { format: 'avc' },
+    });
+
+    const audEnc = new AudioEncoder({
+      output: (chunk, meta) => muxer.addAudioChunk(chunk, meta),
+      error:  (e) => console.error('AudioEncoder:', e),
+    });
+    audEnc.configure({ codec: 'mp4a.40.2', sampleRate: sr, numberOfChannels: numCh, bitrate: 256_000 });
+
+    // Encode full audio up front
+    const BLOCK  = 4096;
+    const chData = Array.from({ length: numCh }, (_, c) => enhancedBuffer.getChannelData(c));
+    for (let off = 0; off < enhancedBuffer.length; off += BLOCK) {
+      const frames = Math.min(BLOCK, enhancedBuffer.length - off);
+      const planar = new Float32Array(frames * numCh);
+      for (let c = 0; c < numCh; c++) planar.set(chData[c].subarray(off, off + frames), c * frames);
+      const ad = new AudioData({ format: 'f32-planar', sampleRate: sr,
+        numberOfFrames: frames, numberOfChannels: numCh,
+        timestamp: Math.round((off / sr) * 1_000_000), data: planar });
+      audEnc.encode(ad); ad.close();
+    }
+
+    // ── Encode video frames ───────────────────────────────────────
+    for (let f = 0; f < total; f++) {
+      const elapsed = f / FPS;
+      drawRecordingFrame(allFreq[f], bufLen, getLyricAt(elapsed), elapsed, duration);
+      const ts    = Math.round(elapsed * 1_000_000);
+      const frame = new VideoFrame(recCanvas, { timestamp: ts, duration: Math.round(1_000_000 / FPS) });
+      vidEnc.encode(frame, { keyFrame: f % 60 === 0 });
+      frame.close();
+
+      if (f % 50 === 49) {
+        const pct = Math.round((f + 1) / total * 100);
+        setStatus('processing', `Encoding 4K video — ${pct}%`);
+        await new Promise(r => setTimeout(r, 0));
+        while (vidEnc.encodeQueueSize > 30) await new Promise(r => setTimeout(r, 16));
+      }
+    }
+
+    setStatus('processing', 'Finalizing MP4…');
+    await vidEnc.flush(); vidEnc.close();
+    await audEnc.flush(); audEnc.close();
+    muxer.finalize();
+
+    const blob  = new Blob([muxTarget.buffer], { type: 'video/mp4' });
+    const url   = URL.createObjectURL(blob);
+    const a     = document.createElement('a');
+    const base  = (currentFile?.name || 'audio').replace(/\.[^.]+$/, '');
+    const label = ratio === '916' ? '9x16' : '16x9';
+    a.href = url; a.download = `${base}_SONIQ_4K_${label}.mp4`; a.click();
+    URL.revokeObjectURL(url);
+    setStatus('done', `✓ 4K MP4 exported — ${label}`);
+  } catch(err) {
+    setStatus('', `Export error: ${err.message}`);
+    console.error(err);
+  }
+
+  downloadMp4Btn.disabled = false;
+  downloadWavBtn.disabled = false;
 }
 
 // ─── Whisper Web Worker ──────────────────────────────────────────────────
