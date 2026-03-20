@@ -831,9 +831,9 @@ let previewTimerID = null;
 let lrcData = []; // [{time, text}]
 let lrcRawLines = []; // plain text lines for alignment (if no timestamps)
 
-// Whisper
-let whisperPipe = null;
-let whisperLoaded = false;
+// Whisper (runs in Web Worker to avoid blocking main thread)
+let whisperWorker = null;
+let whisperWorkerModel = null;
 
 // Recording
 let isRecording = false;
@@ -1716,85 +1716,136 @@ function bufferToWav(buffer) {
   return new Blob([arrBuf], { type: 'audio/wav' });
 }
 
-// ─── AI Lyrics Auto-Sync (Whisper) ───────────────────────────────────────
+// ─── Whisper Web Worker ──────────────────────────────────────────────────
+// Runs Whisper entirely off the main thread to prevent browser timeouts.
 
-autosyncBtn.addEventListener('click', autoSyncLyrics);
+const WHISPER_WORKER_SRC = `
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
-async function autoSyncLyrics() {
-  const audioBuffer = sourceBuffer; // use original (works before enhancement too)
-  if (!audioBuffer) return;
+env.allowRemoteModels = true;
+// Use available CPU threads (workers can access navigator)
+try { env.backends.onnx.wasm.numThreads = Math.min(navigator.hardwareConcurrency || 2, 4); } catch(e) {}
 
-  autosyncBtn.disabled = true;
-  autosyncProg.classList.add('visible');
-  langBadge.classList.remove('visible');
+let pipe = null;
+let loadedModel = null;
 
+self.onmessage = async ({ data }) => {
+  if (data.type !== 'run') return;
+  const { model, audio } = data;
   try {
-    // 1. Load Whisper model if not yet loaded
-    if (!whisperPipe) {
-      const modelId = whisperModel.value;
-      autosyncFill.style.width = '0%';
-      autosyncMsg.textContent = `Loading ${modelId.split('/')[1]} model… (downloads once, cached in browser)`;
-
-      const { pipeline, env } = await import(
-        'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js'
-      );
-      env.allowRemoteModels = true;
-
-      whisperPipe = await pipeline('automatic-speech-recognition', modelId, {
-        progress_callback: (p) => {
-          if (p.status === 'downloading' || p.status === 'progress') {
-            const pct = Math.round(p.progress ?? 0);
-            autosyncFill.style.width = `${pct}%`;
-            const mb = p.total ? ` (${(p.loaded/1e6).toFixed(0)}/${(p.total/1e6).toFixed(0)} MB)` : '';
-            autosyncMsg.textContent = `Downloading: ${p.file ?? ''}${mb}`;
-          } else if (p.status === 'loading') {
-            autosyncFill.style.width = '95%';
-            autosyncMsg.textContent = 'Loading model into memory…';
-          }
-        },
+    if (!pipe || loadedModel !== model) {
+      pipe = null;
+      loadedModel = model;
+      pipe = await pipeline('automatic-speech-recognition', model, {
+        progress_callback: (p) => self.postMessage({ type: 'progress', ...p }),
       });
-      whisperLoaded = true;
     }
-
-    // 2. Resample audio to 16 kHz mono (Whisper requirement)
-    autosyncFill.style.width = '97%';
-    autosyncMsg.textContent = 'Resampling audio…';
-    const audio16k = await resampleTo16k(audioBuffer);
-
-    // 3. Run Whisper transcription
-    autosyncFill.style.width = '98%';
-    autosyncMsg.textContent = 'Transcribing audio — detecting vocals…';
-
-    const result = await whisperPipe(audio16k, {
+    self.postMessage({ type: 'status', msg: 'Transcribing audio — detecting vocals and language…' });
+    const result = await pipe(audio, {
       task: 'transcribe',
-      language: null,          // auto-detect (Vietnamese, English, etc.)
+      language: null,
       return_timestamps: true,
       chunk_length_s: 30,
       stride_length_s: 5,
     });
+    self.postMessage({ type: 'result', chunks: result.chunks ?? [], language: result.language ?? null });
+  } catch (err) {
+    self.postMessage({ type: 'error', message: err.message });
+  }
+};
+`;
 
-    // 4. Show detected language
-    const detectedLang = result.language || (result.chunks?.[0]?.language);
-    if (detectedLang) {
-      langBadge.textContent = langName(detectedLang);
+function getWhisperWorker(model) {
+  if (whisperWorker && whisperWorkerModel !== model) {
+    whisperWorker.terminate();
+    whisperWorker = null;
+  }
+  if (!whisperWorker) {
+    const blob = new Blob([WHISPER_WORKER_SRC], { type: 'text/javascript' });
+    whisperWorker = new Worker(URL.createObjectURL(blob), { type: 'module' });
+    whisperWorkerModel = model;
+  }
+  return whisperWorker;
+}
+
+function runWhisperWorker(model, audioData) {
+  return new Promise((resolve, reject) => {
+    const worker = getWhisperWorker(model);
+
+    worker.onmessage = ({ data }) => {
+      switch (data.type) {
+        case 'progress':
+          if (data.status === 'downloading' || data.status === 'progress') {
+            const pct = Math.round(data.progress ?? 0);
+            autosyncFill.style.width = `${Math.min(pct, 94)}%`;
+            const mb = (data.loaded && data.total)
+              ? ` — ${(data.loaded/1e6).toFixed(0)} / ${(data.total/1e6).toFixed(0)} MB`
+              : '';
+            autosyncMsg.textContent = `Downloading ${data.file ?? 'model'}${mb}`;
+          } else if (data.status === 'loading') {
+            autosyncFill.style.width = '95%';
+            autosyncMsg.textContent = 'Loading model into memory…';
+          }
+          break;
+        case 'status':
+          autosyncFill.style.width = '97%';
+          autosyncMsg.textContent = data.msg;
+          break;
+        case 'result':
+          resolve({ chunks: data.chunks, language: data.language });
+          break;
+        case 'error':
+          reject(new Error(data.message));
+          break;
+      }
+    };
+    worker.onerror = (e) => reject(new Error(e.message || 'Worker crashed'));
+
+    // Transfer the ArrayBuffer (zero-copy) to the worker
+    worker.postMessage({ type: 'run', model, audio: audioData }, [audioData.buffer]);
+  });
+}
+
+// ─── AI Lyrics Auto-Sync ─────────────────────────────────────────────────
+
+autosyncBtn.addEventListener('click', autoSyncLyrics);
+
+async function autoSyncLyrics() {
+  const audioBuffer = sourceBuffer;
+  if (!audioBuffer) return;
+
+  autosyncBtn.disabled = true;
+  autosyncProg.classList.add('visible');
+  autosyncFill.style.width = '0%';
+  langBadge.classList.remove('visible');
+
+  try {
+    const modelId = whisperModel.value;
+    autosyncMsg.textContent = `Starting ${modelId.split('/')[1]} — model downloads once and is cached`;
+
+    // Resample to 16 kHz mono on main thread (fast, non-blocking)
+    autosyncMsg.textContent = 'Resampling audio to 16 kHz…';
+    const audio16k = await resampleTo16k(audioBuffer);
+
+    // Run Whisper entirely in the Web Worker (non-blocking)
+    const { chunks, language } = await runWhisperWorker(modelId, audio16k);
+
+    if (language) {
+      langBadge.textContent = langName(language);
       langBadge.classList.add('visible');
     }
 
-    const chunks = result.chunks || [];
     if (!chunks.length) throw new Error('No speech detected in audio');
 
-    // 5. Build timed lyrics
+    // Build timed lyrics from result
     if (lrcRawLines.length > 0) {
-      // User provided plain text lyrics — align them to Whisper timing
       lrcData = alignLyricsToChunks(lrcRawLines, chunks);
       lrcMeta.textContent = `${lrcData.length} lines aligned · timing synced by AI`;
     } else if (lrcData.length > 0) {
-      // User provided timed .lrc — re-time using Whisper
       const lines = lrcData.map(l => l.text);
       lrcData = alignLyricsToChunks(lines, chunks);
       lrcMeta.textContent = `${lrcData.length} lines re-timed · timestamps updated by AI`;
     } else {
-      // No lyrics loaded — use Whisper transcription directly as captions
       lrcData = chunks
         .filter(c => c.timestamp?.[0] != null && c.text?.trim())
         .map(c => ({ time: c.timestamp[0], text: c.text.trim() }));
@@ -1808,8 +1859,8 @@ async function autoSyncLyrics() {
     setStatus('done', `✓ Lyrics synced (${langBadge.textContent || 'auto'}) — ${lrcData.length} lines ready`);
 
   } catch (err) {
-    autosyncMsg.textContent = `Error: ${err.message}`;
-    setStatus('', `Auto-sync error: ${err.message}`);
+    autosyncMsg.textContent = `✗ Error: ${err.message}`;
+    setStatus('', `Auto-sync failed: ${err.message}`);
     console.error(err);
   }
 
