@@ -497,6 +497,90 @@
   .preset-btn:hover, .preset-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.05); }
 
   .full-panel { grid-column: 1 / -1; }
+
+  /* AI Auto-Sync Panel */
+  .autosync-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+
+  .autosync-panel .panel-title { color: var(--accent3); }
+
+  .new-badge {
+    font-size: 9px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.15em;
+    color: var(--accent3);
+    border: 1px solid var(--accent3);
+    border-radius: 3px;
+    padding: 1px 5px;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+
+  .model-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .model-select:focus { border-color: var(--accent3); }
+
+  .btn-autosync {
+    background: linear-gradient(135deg, var(--accent3), var(--accent));
+    color: #000;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 22px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .btn-autosync:hover { transform: translateY(-1px); box-shadow: 0 0 16px rgba(123,97,255,0.4); }
+  .btn-autosync:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .lang-badge {
+    display: none;
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    margin-left: 8px;
+  }
+
+  .lang-badge.visible { display: inline-block; }
+
+  .autosync-info {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .autosync-progress { display: none; margin-top: 14px; }
+  .autosync-progress.visible { display: block; }
+  .autosync-prog-msg { font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -546,7 +630,36 @@
       <span id="lrc-meta">Drop a .lrc file or click to browse — lyrics will sync in the video</span>
     </div>
     <button class="lrc-clear-btn" id="lrc-clear-btn">✕</button>
-    <input type="file" id="lrc-input" accept=".lrc,text/plain">
+    <input type="file" id="lrc-input" accept=".lrc,.txt,text/plain">
+  </div>
+
+  <!-- AI Auto-Sync -->
+  <div class="autosync-panel">
+    <div class="panel-title">AI Lyrics Timing <span class="new-badge">NEW</span></div>
+    <div class="control-row" style="margin-bottom:14px;">
+      <div class="control-label">Model<small>Size vs accuracy</small></div>
+      <select id="whisper-model" class="model-select">
+        <option value="Xenova/whisper-tiny">Tiny (39 MB) — fast</option>
+        <option value="Xenova/whisper-base" selected>Base (78 MB) — recommended</option>
+      </select>
+    </div>
+    <div class="control-row" style="margin-bottom:0;align-items:flex-start;">
+      <div class="autosync-info" id="autosync-info">
+        Auto-detects timing for <strong style="color:var(--text)">Vietnamese &amp; English</strong> using Whisper AI.<br>
+        Load an audio file (enhanced or original), then click Auto-Sync.<br>
+        If lyrics are loaded, their text is aligned to detected vocals.
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;margin-left:16px;">
+        <div style="display:flex;align-items:center;">
+          <span class="lang-badge" id="lang-badge">—</span>
+        </div>
+        <button class="btn-autosync" id="autosync-btn" disabled>🤖 Auto-Sync</button>
+      </div>
+    </div>
+    <div class="autosync-progress" id="autosync-progress">
+      <div class="progress-bar"><div class="progress-fill" id="autosync-fill" style="width:0%"></div></div>
+      <div class="autosync-prog-msg" id="autosync-msg">Initializing…</div>
+    </div>
   </div>
 
   <!-- Presets -->
@@ -716,6 +829,11 @@ let previewTimerID = null;
 
 // LRC
 let lrcData = []; // [{time, text}]
+let lrcRawLines = []; // plain text lines for alignment (if no timestamps)
+
+// Whisper
+let whisperPipe = null;
+let whisperLoaded = false;
 
 // Recording
 let isRecording = false;
@@ -752,6 +870,13 @@ const lrcMeta       = document.getElementById('lrc-meta');
 const lrcClearBtn   = document.getElementById('lrc-clear-btn');
 const recCanvas     = document.getElementById('rec-canvas');
 const recCtx        = recCanvas.getContext('2d');
+const autosyncBtn   = document.getElementById('autosync-btn');
+const autosyncInfo  = document.getElementById('autosync-info');
+const autosyncProg  = document.getElementById('autosync-progress');
+const autosyncFill  = document.getElementById('autosync-fill');
+const autosyncMsg   = document.getElementById('autosync-msg');
+const langBadge     = document.getElementById('lang-badge');
+const whisperModel  = document.getElementById('whisper-model');
 
 // ─── Sliders ───────────────────────────────────────────────────────────
 const sliders = [
@@ -826,9 +951,20 @@ lrcClearBtn.addEventListener('click', e => { e.stopPropagation(); clearLRC(); })
 function loadLRC(file) {
   const reader = new FileReader();
   reader.onload = e => {
-    lrcData = parseLRC(e.target.result);
+    const text = e.target.result;
+    const parsed = parseLRC(text);
+    if (parsed.length > 0) {
+      // Timed .lrc file
+      lrcData = parsed;
+      lrcRawLines = [];
+      lrcMeta.textContent = `${lrcData.length} timed lines · use Auto-Sync to re-time with AI`;
+    } else {
+      // Plain text lyrics (no timestamps) — store for AI alignment
+      lrcRawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+      lrcData = [];
+      lrcMeta.textContent = `${lrcRawLines.length} lines (no timing) · click Auto-Sync to detect timing`;
+    }
     lrcLabel.textContent = file.name;
-    lrcMeta.textContent = `${lrcData.length} lines loaded · lyrics will sync during playback and video`;
     lrcZone.classList.add('lrc-loaded');
     lrcClearBtn.classList.add('visible');
   };
@@ -837,8 +973,9 @@ function loadLRC(file) {
 
 function clearLRC() {
   lrcData = [];
-  lrcLabel.textContent = 'Add Lyrics (.lrc)';
-  lrcMeta.textContent = 'Drop a .lrc file or click to browse — lyrics will sync in the video';
+  lrcRawLines = [];
+  lrcLabel.textContent = 'Add Lyrics (.lrc or .txt)';
+  lrcMeta.textContent = 'Drop a .lrc file (timed) or .txt (plain lines) — Auto-Sync will detect timing';
   lrcZone.classList.remove('lrc-loaded');
   lrcClearBtn.classList.remove('visible');
   lrcInput.value = '';
@@ -907,6 +1044,7 @@ function loadFile(file) {
   previewBtn.disabled = true;
   downloadBtn.disabled = true;
   recordBtn.disabled = true;
+  autosyncBtn.disabled = false;
 
   const reader = new FileReader();
   reader.onload = async e => {
@@ -928,7 +1066,10 @@ function clearAll() {
   previewBtn.disabled = true;
   downloadBtn.disabled = true;
   recordBtn.disabled = true;
+  autosyncBtn.disabled = true;
   progressWrap.classList.remove('visible');
+  autosyncProg.classList.remove('visible');
+  langBadge.classList.remove('visible');
   setStatus('', 'Load an audio file to begin');
   clearCanvas();
   hideLyric();
@@ -1573,6 +1714,195 @@ function bufferToWav(buffer) {
     }
   }
   return new Blob([arrBuf], { type: 'audio/wav' });
+}
+
+// ─── AI Lyrics Auto-Sync (Whisper) ───────────────────────────────────────
+
+autosyncBtn.addEventListener('click', autoSyncLyrics);
+
+async function autoSyncLyrics() {
+  const audioBuffer = sourceBuffer; // use original (works before enhancement too)
+  if (!audioBuffer) return;
+
+  autosyncBtn.disabled = true;
+  autosyncProg.classList.add('visible');
+  langBadge.classList.remove('visible');
+
+  try {
+    // 1. Load Whisper model if not yet loaded
+    if (!whisperPipe) {
+      const modelId = whisperModel.value;
+      autosyncFill.style.width = '0%';
+      autosyncMsg.textContent = `Loading ${modelId.split('/')[1]} model… (downloads once, cached in browser)`;
+
+      const { pipeline, env } = await import(
+        'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js'
+      );
+      env.allowRemoteModels = true;
+
+      whisperPipe = await pipeline('automatic-speech-recognition', modelId, {
+        progress_callback: (p) => {
+          if (p.status === 'downloading' || p.status === 'progress') {
+            const pct = Math.round(p.progress ?? 0);
+            autosyncFill.style.width = `${pct}%`;
+            const mb = p.total ? ` (${(p.loaded/1e6).toFixed(0)}/${(p.total/1e6).toFixed(0)} MB)` : '';
+            autosyncMsg.textContent = `Downloading: ${p.file ?? ''}${mb}`;
+          } else if (p.status === 'loading') {
+            autosyncFill.style.width = '95%';
+            autosyncMsg.textContent = 'Loading model into memory…';
+          }
+        },
+      });
+      whisperLoaded = true;
+    }
+
+    // 2. Resample audio to 16 kHz mono (Whisper requirement)
+    autosyncFill.style.width = '97%';
+    autosyncMsg.textContent = 'Resampling audio…';
+    const audio16k = await resampleTo16k(audioBuffer);
+
+    // 3. Run Whisper transcription
+    autosyncFill.style.width = '98%';
+    autosyncMsg.textContent = 'Transcribing audio — detecting vocals…';
+
+    const result = await whisperPipe(audio16k, {
+      task: 'transcribe',
+      language: null,          // auto-detect (Vietnamese, English, etc.)
+      return_timestamps: true,
+      chunk_length_s: 30,
+      stride_length_s: 5,
+    });
+
+    // 4. Show detected language
+    const detectedLang = result.language || (result.chunks?.[0]?.language);
+    if (detectedLang) {
+      langBadge.textContent = langName(detectedLang);
+      langBadge.classList.add('visible');
+    }
+
+    const chunks = result.chunks || [];
+    if (!chunks.length) throw new Error('No speech detected in audio');
+
+    // 5. Build timed lyrics
+    if (lrcRawLines.length > 0) {
+      // User provided plain text lyrics — align them to Whisper timing
+      lrcData = alignLyricsToChunks(lrcRawLines, chunks);
+      lrcMeta.textContent = `${lrcData.length} lines aligned · timing synced by AI`;
+    } else if (lrcData.length > 0) {
+      // User provided timed .lrc — re-time using Whisper
+      const lines = lrcData.map(l => l.text);
+      lrcData = alignLyricsToChunks(lines, chunks);
+      lrcMeta.textContent = `${lrcData.length} lines re-timed · timestamps updated by AI`;
+    } else {
+      // No lyrics loaded — use Whisper transcription directly as captions
+      lrcData = chunks
+        .filter(c => c.timestamp?.[0] != null && c.text?.trim())
+        .map(c => ({ time: c.timestamp[0], text: c.text.trim() }));
+      lrcMeta.textContent = `${lrcData.length} captions generated by AI`;
+      lrcLabel.textContent = 'AI Transcription';
+      lrcZone.classList.add('lrc-loaded');
+    }
+
+    autosyncFill.style.width = '100%';
+    autosyncMsg.textContent = `✓ Done — ${lrcData.length} lines synced`;
+    setStatus('done', `✓ Lyrics synced (${langBadge.textContent || 'auto'}) — ${lrcData.length} lines ready`);
+
+  } catch (err) {
+    autosyncMsg.textContent = `Error: ${err.message}`;
+    setStatus('', `Auto-sync error: ${err.message}`);
+    console.error(err);
+  }
+
+  autosyncBtn.disabled = false;
+}
+
+async function resampleTo16k(audioBuffer) {
+  const TARGET_SR = 16000;
+  const offCtx = new OfflineAudioContext(
+    1,
+    Math.ceil(audioBuffer.duration * TARGET_SR),
+    TARGET_SR
+  );
+  const src = offCtx.createBufferSource();
+  src.buffer = audioBuffer;
+  src.connect(offCtx.destination);
+  src.start(0);
+  const rendered = await offCtx.startRendering();
+  return rendered.getChannelData(0); // Float32Array at 16 kHz
+}
+
+// Align an array of lyric text lines to Whisper chunks using fuzzy word matching.
+// Returns [{time, text}] sorted by time.
+function alignLyricsToChunks(lines, chunks) {
+  // Build a flat word timeline from chunks
+  const wordPool = [];
+  for (const chunk of chunks) {
+    const t0 = chunk.timestamp?.[0] ?? 0;
+    const t1 = chunk.timestamp?.[1] ?? t0;
+    const words = normalizeWords(chunk.text);
+    if (words.length) {
+      const step = (t1 - t0) / words.length;
+      words.forEach((w, i) => wordPool.push({ word: w, time: t0 + i * step }));
+    }
+  }
+
+  const result = [];
+  let searchFrom = 0; // advance search window to avoid going backwards
+
+  for (const line of lines) {
+    const lineWords = normalizeWords(line);
+    if (!lineWords.length) continue;
+
+    // Search for the best matching window of consecutive words
+    let bestScore = -1;
+    let bestIdx   = searchFrom;
+    const windowSize = Math.max(lineWords.length * 2, 8);
+
+    for (let i = searchFrom; i < Math.min(wordPool.length, searchFrom + wordPool.length); i++) {
+      // Score: fraction of lineWords found in a local window starting at i
+      const window = wordPool.slice(i, i + windowSize).map(w => w.word);
+      const windowSet = new Set(window);
+      const matches = lineWords.filter(w => windowSet.has(w)).length;
+      const score   = matches / lineWords.length;
+      if (score > bestScore) {
+        bestScore = score;
+        bestIdx   = i;
+      }
+      if (score > 0.85) break; // good enough
+    }
+
+    result.push({ time: wordPool[bestIdx]?.time ?? 0, text: line });
+    searchFrom = bestIdx + Math.max(1, Math.floor(lineWords.length * 0.5));
+  }
+
+  // Sort and deduplicate timestamps (min 0.3s apart)
+  result.sort((a, b) => a.time - b.time);
+  for (let i = 1; i < result.length; i++) {
+    if (result[i].time - result[i-1].time < 0.3) {
+      result[i].time = result[i-1].time + 0.3;
+    }
+  }
+
+  return result;
+}
+
+function normalizeWords(text) {
+  return text
+    .toLowerCase()
+    .normalize('NFD')                        // decompose Vietnamese diacritics
+    .replace(/[\u0300-\u036f]/g, '')         // strip combining marks
+    .replace(/đ/g, 'd').replace(/Đ/g, 'd')  // handle đ
+    .replace(/[^\w\s]/g, ' ')               // strip punctuation
+    .split(/\s+/)
+    .filter(w => w.length > 1);             // skip single chars
+}
+
+function langName(code) {
+  const map = {
+    vi: 'Vietnamese', en: 'English', zh: 'Chinese', fr: 'French',
+    ja: 'Japanese', ko: 'Korean', es: 'Spanish', de: 'German',
+  };
+  return map[code] || code.toUpperCase();
 }
 
 clearCanvas();
