@@ -80,11 +80,19 @@ jobs:
             cp soniq/qa/index.html deploy/soniq-qa/index.html
           fi
 
-      # ── BRAINQUEST ────────────────────────────────────────────
+      # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
           mkdir -p deploy/brainquest
           cp brainquest/index.html deploy/brainquest/index.html
+
+      # ── BRAINQUEST QA ─────────────────────────────────────────
+      - name: Copy BrainQuest QA
+        run: |
+          if [ -f brainquest/qa/index.html ]; then
+            mkdir -p deploy/brainquest-qa
+            cp brainquest/qa/index.html deploy/brainquest-qa/index.html
+          fi
 
       # ── Homepage ──────────────────────────────────────────────
       - name: Copy homepage
