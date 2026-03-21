@@ -4,1228 +4,770 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BrainQuest Adventure</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #06030f;
-      --indigo: #1a0a3a;
-      --purple: #3d1a7a;
-      --violet: #7040cc;
-      --gold: #c9a84c;
-      --gold-light: #f0d080;
-      --green: #4aaa6a;
-      --red: #c0392b;
-      --white: #f0eeff;
-      --muted: rgba(240, 238, 255, 0.5);
+      --bg:     #0d1b2a;
+      --bg2:    #162338;
+      --gold:   #f7c948;
+      --teal:   #4ecdc4;
+      --coral:  #ff6b6b;
+      --green:  #56cf80;
+      --white:  #f0f4ff;
+      --muted:  rgba(240,244,255,0.5);
+      --card:   rgba(255,255,255,0.05);
+      --cbord:  rgba(255,255,255,0.1);
     }
 
-    html, body { height: 100%; overflow: hidden; }
+    html, body { height: 100%; background: var(--bg); color: var(--white); font-family: 'Nunito', sans-serif; overflow-x: hidden; }
 
-    body {
-      font-family: 'Nunito', sans-serif;
-      background: var(--bg);
-      color: var(--white);
-    }
+    /* ── STARFIELD ── */
+    #starfield { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 
     /* ── SCREENS ── */
     .screen {
-      position: fixed;
-      inset: 0;
+      position: relative; z-index: 1;
+      min-height: 100vh;
       display: none;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex-direction: column;
-      overflow-y: auto;
       padding: 24px;
+      text-align: center;
     }
     .screen.active { display: flex; }
 
-    /* ── SCREEN: START ── */
-    #screen-start {
-      background: radial-gradient(ellipse 80% 70% at 50% 40%, #1a0840 0%, #06030f 70%);
-      text-align: center;
-    }
-    #stars-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .start-content { position: relative; z-index: 1; }
+    /* ── TYPOGRAPHY ── */
+    h1, h2, .fredoka { font-family: 'Fredoka One', cursive; }
+    h1 { font-size: clamp(38px, 9vw, 72px); line-height: 1.1; }
+    h2 { font-size: clamp(24px, 5vw, 40px); }
 
-    .start-eyebrow {
-      font-size: 11px;
-      letter-spacing: 5px;
-      text-transform: uppercase;
-      color: var(--gold);
+    /* ── BADGE ── */
+    .badge {
+      display: inline-block;
+      font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 50px;
+      background: rgba(247,201,72,0.15); color: var(--gold);
+      border: 1px solid rgba(247,201,72,0.35);
+      margin-bottom: 16px;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: 18px; letter-spacing: 1px;
+      border: none; border-radius: 50px; cursor: pointer;
+      padding: 14px 44px;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn:hover { transform: translateY(-3px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-gold {
+      background: var(--gold); color: #0d1b2a;
+      box-shadow: 0 4px 20px rgba(247,201,72,0.35);
+    }
+    .btn-gold:hover { box-shadow: 0 8px 32px rgba(247,201,72,0.5); }
+
+    .btn-teal {
+      background: var(--teal); color: #0d1b2a;
+      box-shadow: 0 4px 20px rgba(78,205,196,0.3);
+    }
+    .btn-outline {
+      background: transparent; color: var(--white);
+      border: 1px solid var(--cbord);
+      box-shadow: none;
+    }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+    /* ── WELCOME SCREEN ── */
+    #s-welcome .mascot { font-size: 80px; margin-bottom: 16px; animation: bob 2.5s ease-in-out infinite; }
+    #s-welcome h1 { color: var(--gold); text-shadow: 0 0 40px rgba(247,201,72,0.3); margin-bottom: 8px; }
+    #s-welcome .sub {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(16px, 3vw, 22px); color: var(--teal); letter-spacing: 3px;
       margin-bottom: 20px;
-      animation: fadeUp 0.8s ease 0.3s both;
     }
+    #s-welcome .desc { font-size: 15px; color: var(--muted); max-width: 400px; line-height: 1.8; margin-bottom: 36px; }
+    .welcome-stats { display: flex; gap: 32px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+    .ws-item { text-align: center; }
+    .ws-num { font-family: 'Fredoka One', cursive; font-size: 30px; color: var(--teal); }
+    .ws-label { font-size: 11px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
 
-    .start-logo {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(52px, 10vw, 100px);
-      font-weight: 900;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, var(--gold-light) 0%, var(--violet) 50%, var(--gold) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1.0;
-      animation: fadeUp 0.8s ease 0.5s both;
-    }
-
-    .start-sub {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(16px, 3vw, 26px);
-      font-weight: 400;
-      letter-spacing: 8px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 16px;
-      animation: fadeUp 0.8s ease 0.7s both;
-    }
-
-    .start-desc {
-      font-size: 15px;
-      color: var(--muted);
-      line-height: 1.8;
-      max-width: 440px;
-      margin: 0 auto 48px;
-      font-weight: 300;
-      animation: fadeUp 0.8s ease 0.9s both;
-    }
-
-    .btn-start {
-      display: inline-block;
-      background: linear-gradient(135deg, var(--purple), var(--violet));
-      color: var(--white);
-      padding: 18px 56px;
-      border-radius: 50px;
-      border: none;
-      font-family: 'Cinzel', serif;
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      cursor: pointer;
-      box-shadow: 0 0 40px rgba(112, 64, 204, 0.5);
-      transition: transform 0.2s, box-shadow 0.2s;
-      animation: fadeUp 0.8s ease 1.1s both;
-    }
-    .btn-start:hover {
-      transform: translateY(-3px) scale(1.02);
-      box-shadow: 0 0 60px rgba(112, 64, 204, 0.8);
-    }
-
-    .btn-home {
-      display: inline-block;
-      margin-top: 24px;
-      color: var(--muted);
-      font-size: 13px;
-      letter-spacing: 1px;
-      text-decoration: none;
-      cursor: pointer;
-      border: none;
-      background: none;
-      animation: fadeUp 0.8s ease 1.3s both;
-      transition: color 0.2s;
-    }
-    .btn-home:hover { color: var(--gold); }
-
-    .start-stats {
-      display: flex;
-      gap: 40px;
-      justify-content: center;
-      margin-top: 52px;
-      animation: fadeUp 0.8s ease 1.2s both;
-    }
-    .stat-item { text-align: center; }
-    .stat-num {
-      font-family: 'Cinzel', serif;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--gold);
-    }
-    .stat-label {
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    /* ── SCREEN: WORLDS ── */
-    #screen-worlds {
-      background: radial-gradient(ellipse 100% 80% at 50% 0%, #1a0840 0%, #06030f 60%);
-      align-items: flex-start;
-      padding: 40px 24px 60px;
-    }
-    .worlds-header {
-      text-align: center;
-      width: 100%;
-      margin-bottom: 40px;
-    }
-    .worlds-title {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(24px, 4vw, 40px);
-      font-weight: 700;
-      color: var(--white);
-      letter-spacing: 2px;
-    }
-    .worlds-sub {
-      font-size: 13px;
-      color: var(--muted);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-top: 8px;
-    }
-    .worlds-progress {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      justify-content: center;
-      margin-top: 16px;
-    }
-    .progress-bar-outer {
-      width: 200px;
-      height: 6px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .progress-bar-inner {
-      height: 100%;
-      background: linear-gradient(90deg, var(--violet), var(--gold));
-      border-radius: 3px;
-      transition: width 0.5s ease;
-    }
-    .progress-text {
-      font-size: 12px;
-      color: var(--gold);
-      font-weight: 700;
-    }
-
-    #worlds-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-      max-width: 900px;
-      width: 100%;
-    }
-
-    .world-card {
-      background: linear-gradient(135deg, rgba(26, 10, 58, 0.9), rgba(61, 26, 122, 0.3));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 16px;
-      padding: 32px 28px;
-      cursor: pointer;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .world-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse 60% 60% at 30% 30%, rgba(255,255,255,0.04), transparent);
-      pointer-events: none;
-    }
-    .world-card:hover {
-      transform: translateY(-4px);
-      border-color: var(--world-color, var(--violet));
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 20px color-mix(in srgb, var(--world-color, var(--violet)) 40%, transparent);
-    }
-    .world-card.done {
-      border-color: rgba(201, 168, 76, 0.4);
-    }
-    .world-card.done::after {
-      content: '✓';
-      position: absolute;
-      top: 14px;
-      right: 18px;
-      width: 24px; height: 24px;
-      background: var(--gold);
-      color: #000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .world-icon { font-size: 40px; margin-bottom: 12px; }
-    .world-name {
-      font-family: 'Cinzel', serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--white);
-      margin-bottom: 4px;
-    }
-    .world-cat {
-      font-size: 11px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 16px;
-    }
-    .world-stars { color: var(--gold); font-size: 18px; letter-spacing: 2px; }
-    .world-best { font-size: 13px; color: var(--muted); margin-top: 4px; }
-    .world-play {
-      font-size: 13px;
-      color: var(--violet);
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-
-    .worlds-reset {
-      margin-top: 32px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.2);
-      cursor: pointer;
-      background: none;
-      border: none;
-      letter-spacing: 1px;
-      transition: color 0.2s;
-    }
-    .worlds-reset:hover { color: var(--red); }
-    .worlds-home {
-      margin-top: 12px;
-      font-size: 12px;
-      color: var(--muted);
-      cursor: pointer;
-      background: none;
-      border: none;
-      letter-spacing: 1px;
-      text-decoration: none;
-      transition: color 0.2s;
-    }
-    .worlds-home:hover { color: var(--gold); }
-
-    /* ── SCREEN: QUIZ ── */
-    #screen-quiz {
-      background: var(--bg);
-      align-items: stretch;
-      padding: 0;
-      flex-direction: column;
-    }
-    .quiz-world-bar {
-      padding: 16px 24px;
-      background: rgba(26, 10, 58, 0.8);
-      backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
-      flex-shrink: 0;
-    }
-    #quiz-world-name {
-      font-family: 'Cinzel', serif;
-      font-size: 14px;
-      font-weight: 700;
-      letter-spacing: 1px;
-    }
-    .quiz-meta {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    #quiz-lives { font-size: 18px; letter-spacing: 2px; }
-    .quiz-score-wrap { text-align: right; }
-    .quiz-score-label {
-      font-size: 9px;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-    #quiz-score {
-      font-family: 'Cinzel', serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: var(--gold);
-    }
-
-    /* Timer */
-    .timer-wrap {
-      padding: 0 24px;
-      background: rgba(26, 10, 58, 0.5);
-      flex-shrink: 0;
-    }
-    .timer-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 0;
-    }
-    .timer-bar-outer {
-      flex: 1;
-      height: 6px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    #timer-bar {
-      height: 100%;
-      width: 100%;
-      background: var(--green);
-      border-radius: 3px;
-      transition: width 1s linear, background 1s linear;
-    }
-    #timer-text {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      width: 28px;
-      text-align: right;
-    }
-
-    /* Question body */
-    .quiz-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 40px 24px;
-      position: relative;
-      max-width: 700px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .quiz-q-count {
-      font-size: 11px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 24px;
-    }
-
-    #quiz-question {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(18px, 3.5vw, 26px);
-      font-weight: 700;
-      text-align: center;
-      line-height: 1.4;
-      color: var(--white);
-      margin-bottom: 40px;
-      max-width: 560px;
-    }
-
-    #quiz-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      width: 100%;
-      max-width: 560px;
-    }
-
-    .opt-btn {
-      background: rgba(61, 26, 122, 0.25);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px;
-      color: var(--white);
-      font-family: 'Nunito', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      padding: 18px 20px;
-      cursor: pointer;
-      text-align: center;
-      transition: background 0.2s, border-color 0.2s, transform 0.1s;
-      line-height: 1.4;
-    }
-    .opt-btn:hover:not(:disabled) {
-      background: rgba(112, 64, 204, 0.35);
-      border-color: var(--violet);
-      transform: scale(1.02);
-    }
-    .opt-btn:disabled { cursor: default; }
-    .opt-btn.correct {
-      background: rgba(74, 170, 106, 0.3) !important;
-      border-color: var(--green) !important;
-      color: #90ffb0 !important;
-    }
-    .opt-btn.wrong {
-      background: rgba(192, 57, 43, 0.3) !important;
-      border-color: var(--red) !important;
-      color: #ffaaaa !important;
-      animation: shake 0.4s ease;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20% { transform: translateX(-8px); }
-      40% { transform: translateX(8px); }
-      60% { transform: translateX(-6px); }
-      80% { transform: translateX(6px); }
-    }
-
-    /* Feedback overlay */
-    #feedback-overlay {
-      display: none;
-      position: absolute;
-      inset: 0;
-      align-items: center;
-      justify-content: center;
-      background: rgba(6, 3, 15, 0.7);
-      backdrop-filter: blur(4px);
-      border-radius: 0;
-      z-index: 10;
-      pointer-events: none;
-    }
-    .feedback-bubble {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(28px, 6vw, 52px);
-      font-weight: 900;
-      letter-spacing: 2px;
-      animation: popIn 0.3s ease;
-    }
-    #feedback-overlay.correct .feedback-bubble { color: var(--green); }
-    #feedback-overlay.wrong .feedback-bubble { color: var(--red); }
-    .feedback-sub {
-      font-size: 18px;
-      font-weight: 700;
-      margin-top: 8px;
-      color: var(--gold);
-    }
-
-    @keyframes popIn {
-      0% { transform: scale(0.5); opacity: 0; }
-      60% { transform: scale(1.1); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ── SCREEN: RESULT ── */
-    #screen-result {
-      background: radial-gradient(ellipse 80% 80% at 50% 40%, #1a0840 0%, #06030f 70%);
-      text-align: center;
-      flex-direction: column;
-    }
-    .result-icon { font-size: 80px; margin-bottom: 20px; animation: popIn 0.5s ease; }
-    .result-title {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(28px, 5vw, 48px);
-      font-weight: 900;
-      color: var(--white);
-      margin-bottom: 8px;
-    }
-    .result-world-name {
-      font-size: 16px;
-      color: var(--muted);
-      letter-spacing: 2px;
-      margin-bottom: 28px;
-    }
-    .result-score-box {
-      background: rgba(201, 168, 76, 0.1);
-      border: 1px solid rgba(201, 168, 76, 0.3);
-      border-radius: 16px;
-      padding: 24px 48px;
-      margin-bottom: 24px;
-      display: inline-block;
-    }
-    .result-score-label {
-      font-size: 10px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    #result-score {
-      font-family: 'Cinzel', serif;
-      font-size: 40px;
-      font-weight: 900;
-      color: var(--gold);
-    }
-    #result-msg {
-      font-size: 15px;
-      color: var(--muted);
-      max-width: 380px;
-      line-height: 1.8;
-      margin-bottom: 36px;
-    }
-    .result-btns { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-    .btn-result-primary {
-      background: linear-gradient(135deg, var(--purple), var(--violet));
-      color: var(--white);
-      border: none;
-      border-radius: 50px;
-      padding: 15px 44px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-      box-shadow: 0 4px 20px rgba(112, 64, 204, 0.4);
-      transition: transform 0.2s;
-    }
-    .btn-result-primary:hover { transform: translateY(-2px); }
-    .btn-result-secondary {
-      background: none;
-      color: var(--muted);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 50px;
-      padding: 13px 40px;
-      font-family: 'Nunito', sans-serif;
-      font-size: 14px;
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
-    }
-    .btn-result-secondary:hover { border-color: var(--gold); color: var(--gold); }
-
-    /* ── SCREEN: VICTORY ── */
-    #screen-victory {
-      background: radial-gradient(ellipse 100% 80% at 50% 40%, #1a0840 0%, #06030f 70%);
-      text-align: center;
-      flex-direction: column;
-    }
-    #confetti-canvas {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .victory-content { position: relative; z-index: 1; }
-    .victory-trophy { font-size: 96px; animation: popIn 0.6s ease, float 3s ease-in-out infinite; margin-bottom: 24px; }
-    @keyframes float {
+    @keyframes bob {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(-12px); }
     }
-    .victory-title {
-      font-family: 'Cinzel', serif;
-      font-size: clamp(32px, 6vw, 60px);
-      font-weight: 900;
-      background: linear-gradient(135deg, var(--gold-light), var(--gold));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 8px;
-    }
-    .victory-sub {
-      font-size: 16px;
-      color: var(--muted);
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      margin-bottom: 36px;
-    }
-    .victory-total-box {
-      background: rgba(201, 168, 76, 0.1);
-      border: 1px solid rgba(201, 168, 76, 0.4);
-      border-radius: 20px;
-      padding: 28px 56px;
-      margin-bottom: 16px;
-      display: inline-block;
-    }
-    .victory-total-label {
-      font-size: 10px;
-      letter-spacing: 3px;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    #victory-total {
-      font-family: 'Cinzel', serif;
-      font-size: 52px;
-      font-weight: 900;
-      color: var(--gold);
-    }
-    .victory-total-sub {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-    .victory-world-scores {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      max-width: 500px;
-      margin: 20px auto 36px;
-    }
-    .vic-world-chip {
-      background: rgba(61, 26, 122, 0.3);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 50px;
-      padding: 6px 16px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .vic-world-chip .chip-score { color: var(--gold); font-weight: 700; }
 
-    /* ── Responsive ── */
-    @media (max-width: 520px) {
+    /* ── AGE SCREEN ── */
+    #s-age .mascot { font-size: 64px; margin-bottom: 16px; }
+    #s-age h2 { margin-bottom: 8px; }
+    #s-age .hint { font-size: 14px; color: var(--muted); margin-bottom: 36px; }
+    .age-picker {
+      display: flex; align-items: center; gap: 20px;
+      background: var(--card); border: 1px solid var(--cbord);
+      border-radius: 20px; padding: 20px 32px; margin-bottom: 36px;
+    }
+    .age-stepper {
+      font-family: 'Fredoka One', cursive; font-size: 32px;
+      width: 52px; height: 52px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); border: 1px solid var(--cbord);
+      color: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s;
+    }
+    .age-stepper:hover { background: rgba(247,201,72,0.15); color: var(--gold); }
+    #age-display { font-family: 'Fredoka One', cursive; font-size: 64px; color: var(--gold); min-width: 80px; }
+    .tier-preview {
+      background: var(--card); border: 1px solid var(--cbord); border-radius: 16px;
+      padding: 14px 28px; margin-bottom: 36px; font-size: 14px; color: var(--muted);
+    }
+    .tier-preview strong { color: var(--teal); font-size: 16px; }
+
+    /* ── CATEGORY SCREEN ── */
+    #s-category h2 { margin-bottom: 6px; }
+    #s-category .hint { font-size: 14px; color: var(--muted); margin-bottom: 32px; }
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px; max-width: 720px; width: 100%;
+    }
+    .cat-card {
+      background: var(--card); border: 1px solid var(--cbord);
+      border-radius: 20px; padding: 28px 16px; cursor: pointer;
+      transition: transform 0.2s, border-color 0.2s, background 0.2s;
+    }
+    .cat-card:hover {
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--teal);
+      background: rgba(78,205,196,0.08);
+    }
+    .cat-icon { font-size: 44px; margin-bottom: 10px; }
+    .cat-name { font-family: 'Fredoka One', cursive; font-size: 17px; color: var(--white); }
+    .cat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+    .back-link {
+      margin-top: 24px; font-size: 13px; color: var(--muted); cursor: pointer;
+      background: none; border: none; transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--gold); }
+
+    /* ── QUIZ SCREEN ── */
+    #s-quiz {
+      justify-content: flex-start;
+      padding: 0; max-width: 100%;
+    }
+
+    /* Top bar */
+    .quiz-topbar {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      background: rgba(22,35,56,0.9); backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--cbord); flex-shrink: 0;
+    }
+    .quiz-home-btn {
+      font-size: 20px; text-decoration: none;
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06); border: 1px solid var(--cbord);
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .quiz-home-btn:hover { background: rgba(247,201,72,0.15); }
+    .quiz-tier-badge {
+      font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+      color: var(--teal); background: rgba(78,205,196,0.1); border: 1px solid rgba(78,205,196,0.3);
+      padding: 4px 12px; border-radius: 50px;
+    }
+    .quiz-cat-label { font-size: 14px; font-weight: 700; color: var(--white); }
+    .quiz-score-wrap { text-align: right; }
+    .quiz-score-label { font-size: 10px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+    #quiz-score { font-family: 'Fredoka One', cursive; font-size: 22px; color: var(--gold); }
+
+    /* Progress */
+    .quiz-progress-wrap { width: 100%; padding: 10px 20px 0; flex-shrink: 0; }
+    .quiz-qcount { font-size: 12px; color: var(--muted); text-align: right; margin-bottom: 5px; }
+    .prog-outer { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; }
+    #quiz-prog-bar {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--teal), var(--gold));
+      transition: width 0.4s ease;
+    }
+
+    /* Quiz body */
+    .quiz-body {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 24px 20px 32px; width: 100%; max-width: 680px; margin: 0 auto;
+    }
+
+    #quiz-mascot { font-size: 64px; margin-bottom: 12px; transition: transform 0.3s; }
+    .mascot-pop { animation: mascotPop 0.4s ease; }
+    @keyframes mascotPop {
+      0% { transform: scale(1); }
+      40% { transform: scale(1.3) rotate(-5deg); }
+      100% { transform: scale(1); }
+    }
+
+    #quiz-question {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(18px, 4vw, 26px);
+      line-height: 1.4; text-align: center;
+      color: var(--white); margin-bottom: 28px; max-width: 560px;
+    }
+
+    #quiz-options {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+      width: 100%; max-width: 560px; margin-bottom: 20px;
+    }
+
+    .opt {
+      background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px; padding: 16px 18px;
+      font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700;
+      color: var(--white); cursor: pointer; text-align: center; line-height: 1.4;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
+    }
+    .opt:hover:not(:disabled) {
+      background: rgba(78,205,196,0.12); border-color: var(--teal);
+      transform: scale(1.02);
+    }
+    .opt:disabled { cursor: default; }
+    .opt.correct { background: rgba(86,207,128,0.2) !important; border-color: var(--green) !important; color: #a0ffcc !important; }
+    .opt.wrong { background: rgba(255,107,107,0.2) !important; border-color: var(--coral) !important; color: #ffaaaa !important; animation: shake 0.35s ease; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-5px)} 80%{transform:translateX(5px)}
+    }
+
+    /* Explanation */
+    #quiz-explain {
+      max-width: 520px; width: 100%;
+      background: rgba(78,205,196,0.08); border: 1px solid rgba(78,205,196,0.25);
+      border-radius: 14px; padding: 14px 20px;
+      font-size: 14px; line-height: 1.7; color: rgba(240,244,255,0.85);
+      display: none; text-align: center;
+    }
+    #quiz-explain.wrong-ex { background: rgba(255,107,107,0.08); border-color: rgba(255,107,107,0.25); }
+    #quiz-explain.visible { display: block; animation: fadeUp 0.3s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── RESULTS SCREEN ── */
+    #s-results .mascot-big { font-size: 96px; margin-bottom: 16px; animation: bob 2.5s ease-in-out infinite; }
+    #s-results h2 { margin-bottom: 8px; }
+    .result-sub { font-size: 15px; color: var(--muted); margin-bottom: 28px; }
+
+    .stars-row { font-size: 52px; letter-spacing: 8px; margin-bottom: 28px; color: var(--gold); }
+
+    .score-box {
+      background: rgba(247,201,72,0.08); border: 1px solid rgba(247,201,72,0.3);
+      border-radius: 20px; padding: 20px 48px; margin-bottom: 12px; display: inline-block;
+    }
+    .score-box-label { font-size: 10px; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 4px; }
+    #result-score { font-family: 'Fredoka One', cursive; font-size: 48px; color: var(--gold); }
+    .score-fraction { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+
+    .result-btns { display: flex; flex-direction: column; gap: 12px; align-items: center; margin-top: 4px; }
+    .result-btns .btn { min-width: 240px; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
       #quiz-options { grid-template-columns: 1fr; }
-      .start-stats { gap: 24px; }
+      .cat-grid { grid-template-columns: repeat(2, 1fr); }
+      .age-picker { padding: 16px 20px; gap: 14px; }
+      #age-display { font-size: 48px; }
     }
   </style>
 </head>
 <body>
 
-  <!-- ══ SCREEN: START ══════════════════════════════════════ -->
-  <div id="screen-start" class="screen active">
-    <canvas id="stars-canvas"></canvas>
-    <div class="start-content">
-      <p class="start-eyebrow">An Epic Knowledge Journey</p>
-      <div class="start-logo">BrainQuest</div>
-      <p class="start-sub">Adventure</p>
-      <p class="start-desc">Six realms of knowledge await. Answer questions, beat the clock, and prove you are the ultimate trivia champion.</p>
-      <button class="btn-start" onclick="goWorlds()">⚔️ Begin Quest</button>
-      <br>
-      <a href="/" class="btn-home">← Back to GoGreenVue</a>
-      <div class="start-stats">
-        <div class="stat-item">
-          <div class="stat-num">6</div>
-          <div class="stat-label">Worlds</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">30</div>
-          <div class="stat-label">Questions</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">4500</div>
-          <div class="stat-label">Max Score</div>
-        </div>
-      </div>
-    </div>
-  </div>
+<canvas id="starfield"></canvas>
 
-  <!-- ══ SCREEN: WORLDS ═════════════════════════════════════ -->
-  <div id="screen-worlds" class="screen">
-    <div class="worlds-header">
-      <h1 class="worlds-title">⚔️ Choose Your Realm</h1>
-      <p class="worlds-sub">Select a world to begin</p>
-      <div class="worlds-progress">
-        <div class="progress-bar-outer">
-          <div class="progress-bar-inner" id="worlds-prog-bar"></div>
-        </div>
-        <span class="progress-text" id="worlds-prog-text">0 / 6</span>
-      </div>
-    </div>
-    <div id="worlds-grid"></div>
-    <button class="worlds-reset" onclick="resetProgress()">Reset all progress</button>
-    <a href="/" class="worlds-home">← GoGreenVue Home</a>
+<!-- ══ WELCOME ══════════════════════════════════════════ -->
+<div id="s-welcome" class="screen active">
+  <div class="mascot">🦉</div>
+  <div class="badge">Age 5 – 18 · Adaptive Quiz</div>
+  <h1>BrainQuest</h1>
+  <p class="sub">Adventure — QA</p>
+  <p class="desc">Test your knowledge across 5 exciting categories. Questions adapt to your age — Explorer to Master level!</p>
+  <button class="btn btn-gold" onclick="go('s-age')">🚀 Start Adventure</button>
+  <a href="/" class="back-link" style="margin-top:20px;">🏠 GoGreenVue Home</a>
+  <div class="welcome-stats">
+    <div class="ws-item"><div class="ws-num">5</div><div class="ws-label">Categories</div></div>
+    <div class="ws-item"><div class="ws-num">4</div><div class="ws-label">Age Tiers</div></div>
+    <div class="ws-item"><div class="ws-num">120+</div><div class="ws-label">Questions</div></div>
   </div>
+</div>
 
-  <!-- ══ SCREEN: QUIZ ═══════════════════════════════════════ -->
-  <div id="screen-quiz" class="screen">
-    <div class="quiz-world-bar">
-      <div id="quiz-world-name"></div>
-      <div class="quiz-meta">
-        <div id="quiz-lives"></div>
-        <div class="quiz-score-wrap">
-          <div class="quiz-score-label">Score</div>
-          <div id="quiz-score">0</div>
-        </div>
-      </div>
-    </div>
-    <div class="timer-wrap">
-      <div class="timer-row">
-        <div class="timer-bar-outer">
-          <div id="timer-bar"></div>
-        </div>
-        <div id="timer-text">30s</div>
-      </div>
-    </div>
-    <div class="quiz-body">
-      <div class="quiz-q-count" id="quiz-q-count"></div>
-      <div id="quiz-question"></div>
-      <div id="quiz-options"></div>
-      <div id="feedback-overlay">
-        <div style="text-align:center;">
-          <div class="feedback-bubble" id="feedback-main"></div>
-          <div class="feedback-sub" id="feedback-sub"></div>
-        </div>
-      </div>
-    </div>
+<!-- ══ AGE ENTRY ════════════════════════════════════════ -->
+<div id="s-age" class="screen">
+  <div class="mascot">🦉</div>
+  <h2>How old are you?</h2>
+  <p class="hint">Pick your age and we'll match the difficulty just for you!</p>
+  <div class="age-picker">
+    <button class="age-stepper" onclick="changeAge(-1)">−</button>
+    <div id="age-display">10</div>
+    <button class="age-stepper" onclick="changeAge(1)">+</button>
   </div>
+  <div class="tier-preview" id="tier-preview"></div>
+  <button class="btn btn-gold" onclick="confirmAge()">Let's Go! →</button>
+  <button class="back-link" onclick="go('s-welcome')">← Back</button>
+</div>
 
-  <!-- ══ SCREEN: RESULT ════════════════════════════════════ -->
-  <div id="screen-result" class="screen">
-    <div id="result-icon"></div>
-    <div class="result-title" id="result-title"></div>
-    <div class="result-world-name" id="result-world"></div>
-    <div class="result-score-box">
-      <div class="result-score-label">Score</div>
-      <div id="result-score"></div>
+<!-- ══ CATEGORY SELECT ══════════════════════════════════ -->
+<div id="s-category" class="screen">
+  <h2>Choose Your Quest</h2>
+  <p class="hint" id="cat-hint"></p>
+  <div class="cat-grid">
+    <div class="cat-card" onclick="startQuiz('science')">
+      <div class="cat-icon">🔬</div>
+      <div class="cat-name">Science</div>
+      <div class="cat-sub">Discover the world</div>
     </div>
-    <p id="result-msg"></p>
-    <div class="result-btns">
-      <button class="btn-result-primary" id="result-btn"></button>
-      <button class="btn-result-secondary" id="result-back">World Map</button>
+    <div class="cat-card" onclick="startQuiz('math')">
+      <div class="cat-icon">➕</div>
+      <div class="cat-name">Math</div>
+      <div class="cat-sub">Numbers &amp; logic</div>
+    </div>
+    <div class="cat-card" onclick="startQuiz('language')">
+      <div class="cat-icon">📖</div>
+      <div class="cat-name">Language</div>
+      <div class="cat-sub">Words &amp; writing</div>
+    </div>
+    <div class="cat-card" onclick="startQuiz('geography')">
+      <div class="cat-icon">🌍</div>
+      <div class="cat-name">Geography</div>
+      <div class="cat-sub">Places &amp; lands</div>
+    </div>
+    <div class="cat-card" onclick="startQuiz('nature')">
+      <div class="cat-icon">🐾</div>
+      <div class="cat-name">Nature</div>
+      <div class="cat-sub">Animals &amp; plants</div>
     </div>
   </div>
+  <button class="back-link" onclick="go('s-age')">← Change Age</button>
+</div>
 
-  <!-- ══ SCREEN: VICTORY ═══════════════════════════════════ -->
-  <div id="screen-victory" class="screen">
-    <canvas id="confetti-canvas"></canvas>
-    <div class="victory-content">
-      <div class="victory-trophy">🏆</div>
-      <div class="victory-title">All Realms Conquered!</div>
-      <p class="victory-sub">Master of BrainQuest</p>
-      <div class="victory-total-box">
-        <div class="victory-total-label">Total Score</div>
-        <div id="victory-total">0</div>
-        <div class="victory-total-sub">out of 4,500 possible</div>
-      </div>
-      <div class="victory-world-scores" id="victory-world-scores"></div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn-result-primary" onclick="resetProgress();goWorlds()">Play Again</button>
-        <a href="/" class="btn-result-secondary" style="display:inline-flex;align-items:center;text-decoration:none;">← Home</a>
-      </div>
+<!-- ══ QUIZ ═════════════════════════════════════════════ -->
+<div id="s-quiz" class="screen">
+  <div class="quiz-topbar">
+    <a href="/" class="quiz-home-btn" title="GoGreenVue Home">🏠</a>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="quiz-tier-badge" id="quiz-tier-label"></div>
+      <div class="quiz-cat-label" id="quiz-cat-label"></div>
+    </div>
+    <div class="quiz-score-wrap">
+      <div class="quiz-score-label">Score</div>
+      <div id="quiz-score">0</div>
     </div>
   </div>
+  <div class="quiz-progress-wrap">
+    <div class="quiz-qcount" id="quiz-qcount"></div>
+    <div class="prog-outer"><div id="quiz-prog-bar" style="width:0%"></div></div>
+  </div>
+  <div class="quiz-body">
+    <div id="quiz-mascot">🦉</div>
+    <div id="quiz-question"></div>
+    <div id="quiz-options"></div>
+    <div id="quiz-explain"></div>
+  </div>
+</div>
+
+<!-- ══ RESULTS ═══════════════════════════════════════════ -->
+<div id="s-results" class="screen">
+  <div class="mascot-big" id="result-mascot">🦉</div>
+  <h2 id="result-title"></h2>
+  <p class="result-sub" id="result-sub"></p>
+  <div class="stars-row" id="result-stars"></div>
+  <div class="score-box">
+    <div class="score-box-label">Score</div>
+    <div id="result-score">0</div>
+  </div>
+  <p class="score-fraction" id="result-fraction"></p>
+  <div class="result-btns">
+    <button class="btn btn-gold" id="result-again">🎯 Play Again</button>
+    <button class="btn btn-teal" onclick="go('s-category')">🗺️ Change Category</button>
+    <button class="btn btn-outline" onclick="go('s-age')">🔄 Change Age</button>
+    <a href="/" class="btn btn-outline" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">🏠 GoGreenVue Home</a>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════════════════════
-//  QUESTION BANK
+//  QUESTION BANK  (5 categories × 4 tiers × 6 questions = 120)
 // ══════════════════════════════════════════════════════════
-const WORLDS = [
-  {
-    id: 'nature',
-    name: 'Nature Kingdom',
-    icon: '🌿',
-    color: '#2d7a4a',
-    desc: 'Science & Nature',
-    questions: [
-      { q: 'What is known as the "powerhouse of the cell"?',
-        opts: ['Nucleus', 'Mitochondria', 'Ribosome', 'Vacuole'], ans: 1 },
-      { q: 'How many bones are in the adult human body?',
-        opts: ['186', '196', '206', '216'], ans: 2 },
-      { q: 'What gas do plants primarily absorb during photosynthesis?',
-        opts: ['Oxygen', 'Nitrogen', 'Carbon Dioxide', 'Hydrogen'], ans: 2 },
-      { q: 'Which is the largest organ in the human body?',
-        opts: ['Heart', 'Liver', 'Lungs', 'Skin'], ans: 3 },
-      { q: 'At what temperature does water boil at sea level?',
-        opts: ['90 °C', '95 °C', '100 °C', '105 °C'], ans: 2 },
-    ]
+const QB = {
+  science: {
+    explorer: [
+      { q:"What color is the sky on a sunny day?", opts:["Red","Blue","Green","Yellow"], ans:1, ex:"The sky looks blue because sunlight scatters off air molecules — blue light bounces the most!" },
+      { q:"How many legs does a spider have?", opts:["4","6","8","10"], ans:2, ex:"Spiders have 8 legs! That's 2 more than insects, which always have 6." },
+      { q:"What do plants need to grow?", opts:["Just water","Just sunlight","Sunlight, water & soil","Just soil"], ans:2, ex:"Plants are like little factories — they need sunlight for energy, water to grow, and soil for nutrients!" },
+      { q:"What do caterpillars turn into?", opts:["Birds","Butterflies","Bees","Beetles"], ans:1, ex:"A caterpillar wraps itself in a cocoon and transforms — this magical change is called metamorphosis!" },
+      { q:"What comes out of a volcano?", opts:["Water","Ice","Lava","Sand"], ans:2, ex:"Volcanoes shoot out super-hot melted rock called lava. Underground it's called magma!" },
+      { q:"Which planet do we live on?", opts:["Mars","Venus","Jupiter","Earth"], ans:3, ex:"We live on Earth — the third planet from the Sun, and the only one known to have life!" },
+    ],
+    adventurer: [
+      { q:"What is at the center of our solar system?", opts:["Earth","Moon","Sun","Mars"], ans:2, ex:"The Sun is at the center — all 8 planets orbit around it due to gravity!" },
+      { q:"What gas do humans need to breathe?", opts:["Nitrogen","Carbon dioxide","Oxygen","Hydrogen"], ans:2, ex:"We breathe in oxygen (O₂) and breathe out carbon dioxide (CO₂). Plants do the opposite!" },
+      { q:"What is the hardest natural substance on Earth?", opts:["Gold","Iron","Quartz","Diamond"], ans:3, ex:"Diamond scores 10 on the Mohs hardness scale — it can scratch any other mineral!" },
+      { q:"Which organ pumps blood around the body?", opts:["Lungs","Liver","Heart","Brain"], ans:2, ex:"Your heart beats about 100,000 times every single day — that's over 35 million times a year!" },
+      { q:"What is the process by which plants make food?", opts:["Digestion","Photosynthesis","Respiration","Evaporation"], ans:1, ex:"Photosynthesis uses sunlight, water, and CO₂ to make sugar (glucose) — and releases oxygen!" },
+      { q:"What is the closest star to Earth?", opts:["Sirius","Polaris","The Sun","Proxima Centauri"], ans:2, ex:"The Sun is our nearest star at ~150 million km away. The next closest, Proxima Centauri, is 4.2 light-years away!" },
+    ],
+    champion: [
+      { q:"What is the chemical symbol for gold?", opts:["Go","Au","Gd","Ag"], ans:1, ex:"'Au' comes from the Latin word 'aurum.' The symbol 'Ag' is for silver (argentum)!" },
+      { q:"What is the powerhouse of the cell?", opts:["Nucleus","Mitochondria","Ribosome","Vacuole"], ans:1, ex:"Mitochondria produce ATP (adenosine triphosphate) — the main energy currency of all cells!" },
+      { q:"What is the chemical formula for water?", opts:["HO","H₂O","H₂O₂","CO₂"], ans:1, ex:"H₂O means 2 hydrogen atoms bonded to 1 oxygen atom. H₂O₂ is hydrogen peroxide!" },
+      { q:"What force keeps planets in orbit around the Sun?", opts:["Magnetism","Friction","Gravity","Electricity"], ans:2, ex:"Gravity is an attractive force between all objects with mass. The more mass, the stronger the pull!" },
+      { q:"What part of the atom carries a positive charge?", opts:["Electron","Neutron","Proton","Nucleus"], ans:2, ex:"Protons (+) sit in the nucleus with neutrons (neutral). Electrons (−) orbit outside!" },
+      { q:"Approximately how fast does sound travel in air?", opts:["100 m/s","343 m/s","1,000 m/s","3,000 m/s"], ans:1, ex:"343 m/s at sea level — that's why you see lightning before hearing thunder!" },
+    ],
+    master: [
+      { q:"What does DNA stand for?", opts:["Diribose Nucleic Acid","Deoxyribonucleic Acid","Dioxy Nucleic Acid","Dynamic Nucleic Acid"], ans:1, ex:"DNA is the molecular blueprint for all living organisms, organized into genes and chromosomes!" },
+      { q:"Which law states that energy cannot be created or destroyed?", opts:["Newton's First Law","First Law of Thermodynamics","Boyle's Law","Ohm's Law"], ans:1, ex:"Conservation of energy: the total energy of an isolated system remains constant — it only changes form!" },
+      { q:"What is the atomic number of carbon?", opts:["4","6","8","12"], ans:1, ex:"Carbon (C) has 6 protons, making its atomic number 6. Its mass number is ~12 (6 protons + 6 neutrons)!" },
+      { q:"Approximately what is the half-life of Carbon-14?", opts:["~570 years","~5,730 years","~57,300 years","~573,000 years"], ans:1, ex:"C-14's 5,730-year half-life makes it ideal for radiocarbon dating objects up to ~50,000 years old!" },
+      { q:"What is the name of the boundary around a black hole beyond which nothing can escape?", opts:["Photon sphere","Schwarzschild radius","Event horizon","Singularity"], ans:2, ex:"Beyond the event horizon, escape velocity exceeds c (speed of light) — not even light can escape!" },
+      { q:"Which massless particle carries the electromagnetic force?", opts:["Electron","Photon","Neutrino","Gluon"], ans:1, ex:"Photons carry the electromagnetic force. Gluons carry the strong force; W/Z bosons carry the weak force!" },
+    ],
   },
-  {
-    id: 'history',
-    name: 'Ancient Ruins',
-    icon: '🏛️',
-    color: '#c07030',
-    desc: 'History & Civilizations',
-    questions: [
-      { q: 'In what year did World War II end?',
-        opts: ['1943', '1944', '1945', '1946'], ans: 2 },
-      { q: 'Who was the first President of the United States?',
-        opts: ['John Adams', 'Thomas Jefferson', 'Benjamin Franklin', 'George Washington'], ans: 3 },
-      { q: 'Which ancient wonder of the world stood in Alexandria, Egypt?',
-        opts: ['The Colossus', 'The Lighthouse', 'The Mausoleum', 'Hanging Gardens'], ans: 1 },
-      { q: 'The Great Wall of China was primarily built to defend against which group?',
-        opts: ['Mongols', 'Persians', 'Romans', 'Vikings'], ans: 0 },
-      { q: 'Which Egyptian queen allied with Julius Caesar and later Mark Antony?',
-        opts: ['Nefertiti', 'Hatshepsut', 'Cleopatra', 'Isis'], ans: 2 },
-    ]
+
+  math: {
+    explorer: [
+      { q:"What is 2 + 3?", opts:["4","5","6","7"], ans:1, ex:"Count on your fingers: 1, 2 … then 3 more makes 3, 4, 5. The answer is 5!" },
+      { q:"How many sides does a triangle have?", opts:["2","3","4","5"], ans:1, ex:"'Tri' means three in Latin — so a triangle always has exactly 3 sides and 3 corners!" },
+      { q:"What is 10 − 4?", opts:["4","5","6","7"], ans:2, ex:"Start at 10 and count back 4 steps: 9, 8, 7, 6. The answer is 6!" },
+      { q:"Which number comes after 9?", opts:["8","10","11","12"], ans:1, ex:"After 9 comes 10 — and that's how we jump from single digits to double digits!" },
+      { q:"What is 3 × 2?", opts:["4","5","6","7"], ans:2, ex:"3 × 2 means 3 groups of 2: ●● ●● ●● — count them all and you get 6!" },
+      { q:"How many sides does a square have?", opts:["3","4","5","6"], ans:1, ex:"A square has 4 equal sides and 4 right-angle corners. It's a special rectangle!" },
+    ],
+    adventurer: [
+      { q:"What is 7 × 8?", opts:["54","56","58","64"], ans:1, ex:"Memory trick: 5, 6, 7, 8 → 56 = 7 × 8. Just remember the sequence!" },
+      { q:"What is 25% of 80?", opts:["15","20","25","30"], ans:1, ex:"25% = ¼. A quarter of 80 is 80 ÷ 4 = 20!" },
+      { q:"What is the perimeter of a square with side length 5?", opts:["15","20","25","10"], ans:1, ex:"Perimeter = 4 × side = 4 × 5 = 20. Add all four sides together!" },
+      { q:"What is the square root of 81?", opts:["7","8","9","10"], ans:2, ex:"9 × 9 = 81, so √81 = 9. Square root asks: what number times itself gives this?" },
+      { q:"What comes next in the sequence: 2, 4, 8, 16, __?", opts:["24","28","32","36"], ans:2, ex:"Each number doubles! 16 × 2 = 32. This is a geometric sequence with ratio 2." },
+      { q:"If one dozen eggs costs $3, how much do 2 dozen cost?", opts:["$4","$5","$6","$7"], ans:2, ex:"1 dozen = $3, so 2 dozen = 2 × $3 = $6. Multiplication in the real world!" },
+    ],
+    champion: [
+      { q:"What is 17 × 8?", opts:["126","132","136","144"], ans:2, ex:"Split it: (10 × 8) + (7 × 8) = 80 + 56 = 136. Breaking numbers apart makes multiplication easier!" },
+      { q:"What is π to 2 decimal places?", opts:["3.12","3.14","3.16","3.18"], ans:1, ex:"π ≈ 3.14159... It's the ratio of a circle's circumference to its diameter — irrational and infinite!" },
+      { q:"If x + 7 = 15, what is x?", opts:["6","7","8","9"], ans:2, ex:"Isolate x by subtracting 7 from both sides: x = 15 − 7 = 8!" },
+      { q:"What is 15% of 240?", opts:["30","34","36","40"], ans:2, ex:"10% of 240 = 24. 5% = 12. So 15% = 24 + 12 = 36!" },
+      { q:"What is the next prime number after 17?", opts:["18","19","21","23"], ans:1, ex:"A prime is divisible only by 1 and itself. 18=2×9, so no. 19 has no factors — it's prime!" },
+      { q:"What is the area of a circle with radius 5? (π ≈ 3.14)", opts:["62.8","78.5","31.4","50.0"], ans:1, ex:"Area = πr² = 3.14 × 5² = 3.14 × 25 = 78.5 square units!" },
+    ],
+    master: [
+      { q:"What is the derivative of x³?", opts:["x²","3x²","3x³","x⁴/4"], ans:1, ex:"Power rule: d/dx(xⁿ) = nxⁿ⁻¹. So d/dx(x³) = 3x². Integration would give x⁴/4 + C!" },
+      { q:"What is log₂(64)?", opts:["4","5","6","8"], ans:2, ex:"Ask: 2 to the power of what equals 64? Since 2⁶ = 64, log₂(64) = 6!" },
+      { q:"What is the sum of interior angles of a hexagon?", opts:["540°","660°","720°","900°"], ans:2, ex:"Formula: (n − 2) × 180°. For n = 6: (6 − 2) × 180° = 4 × 180° = 720°!" },
+      { q:"If f(x) = 2x² − 3x + 1, what is f(2)?", opts:["1","2","3","4"], ans:2, ex:"f(2) = 2(4) − 3(2) + 1 = 8 − 6 + 1 = 3. Always substitute carefully!" },
+      { q:"What is the probability of rolling two 6s in a row with a fair die?", opts:["1/12","1/36","1/18","1/6"], ans:1, ex:"Independent events multiply: P = (1/6) × (1/6) = 1/36 ≈ 2.8%!" },
+      { q:"In modular arithmetic, what is 17 mod 5?", opts:["1","2","3","4"], ans:1, ex:"17 = 3 × 5 + 2. The remainder is 2, so 17 mod 5 = 2!" },
+    ],
   },
-  {
-    id: 'geo',
-    name: 'World Atlas',
-    icon: '🗺️',
-    color: '#2060c0',
-    desc: 'Geography & Exploration',
-    questions: [
-      { q: 'What is the capital city of Australia?',
-        opts: ['Sydney', 'Melbourne', 'Canberra', 'Brisbane'], ans: 2 },
-      { q: 'Which is the longest river in the world?',
-        opts: ['Amazon', 'Mississippi', 'Yangtze', 'Nile'], ans: 3 },
-      { q: 'What is the smallest country in the world by area?',
-        opts: ['Monaco', 'San Marino', 'Vatican City', 'Liechtenstein'], ans: 2 },
-      { q: 'Which continent has the most countries?',
-        opts: ['Asia', 'Europe', 'Africa', 'South America'], ans: 2 },
-      { q: 'What is the largest ocean on Earth?',
-        opts: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], ans: 3 },
-    ]
+
+  language: {
+    explorer: [
+      { q:"Which of these is a color word?", opts:["Run","Blue","Happy","Jump"], ans:1, ex:"Blue is a color — and a type of word called an adjective because it describes things!" },
+      { q:"What is the opposite of 'big'?", opts:["Fast","Small","Loud","Soft"], ans:1, ex:"Big and small are opposites! We call words with opposite meanings antonyms." },
+      { q:"How many letters are in the English alphabet?", opts:["24","25","26","27"], ans:2, ex:"A to Z — count them up and you get 26 letters. 5 are vowels and 21 are consonants!" },
+      { q:"Which word rhymes with 'cat'?", opts:["Dog","Hat","Cup","Big"], ans:1, ex:"Cat and hat both end in '-at' — that's what makes them rhyme!" },
+      { q:"A cat says __?", opts:["Moo","Woof","Meow","Oink"], ans:2, ex:"Cats say meow! Cows say moo, dogs say woof, and pigs say oink!" },
+      { q:"What is the first letter of the alphabet?", opts:["B","Z","A","M"], ans:2, ex:"A is first — 'A is for Apple!' The alphabet goes from A all the way to Z." },
+    ],
+    adventurer: [
+      { q:"What is a synonym for 'happy'?", opts:["Sad","Angry","Joyful","Tired"], ans:2, ex:"Synonyms are words that mean the same thing. Happy, joyful, and cheerful are all synonyms!" },
+      { q:"Which sentence is punctuated correctly?", opts:["I like cats","I like cats.","i like cats.","I like Cats."], ans:1, ex:"Start with a capital letter, end with a period. 'Cats' doesn't need a capital — it's not a proper noun!" },
+      { q:"What part of speech is 'quickly'?", opts:["Noun","Verb","Adjective","Adverb"], ans:3, ex:"Adverbs modify verbs, adjectives, or other adverbs. 'Quickly' describes how something is done!" },
+      { q:"Which word is spelled correctly?", opts:["Becuase","Because","Beacuse","Becasue"], ans:1, ex:"B-E-C-A-U-S-E. Because is one of the most commonly misspelled words in English!" },
+      { q:"What is a proper noun?", opts:["A type of verb","A name for a specific person, place, or thing","An adjective","A linking word"], ans:1, ex:"London, Emily, and Amazon River are proper nouns — specific names that get capital letters!" },
+      { q:"What is the plural of 'mouse'?", opts:["Mouses","Mices","Mice","Mouse"], ans:2, ex:"Mice is an irregular plural — the vowel changes instead of just adding 's'. Like foot → feet!" },
+    ],
+    champion: [
+      { q:"What is a metaphor?", opts:["A comparison using 'like' or 'as'","A direct comparison saying one thing IS another","An exaggeration for effect","A word that imitates sound"], ans:1, ex:"'Life is a journey' — a metaphor directly states one thing IS another. Similes use 'like' or 'as'!" },
+      { q:"'The wind whispered through the trees' uses which literary device?", opts:["Metaphor","Simile","Personification","Alliteration"], ans:2, ex:"Personification gives human traits (whispering) to non-human things (wind). A simile would say 'like a whisper'!" },
+      { q:"What is the subject of: 'The quick brown fox jumps over the lazy dog'?", opts:["Quick","Fox","Jumps","Dog"], ans:1, ex:"The subject is who/what performs the action. The fox is doing the jumping — it's the subject!" },
+      { q:"What does the prefix 'un-' mean?", opts:["Again","Before","Not or opposite of","After"], ans:2, ex:"Un- means not or reverse: unhappy = not happy, undo = reverse the action, unusual = not usual!" },
+      { q:"Which sentence uses passive voice?", opts:["The chef cooked dinner","Dinner was cooked by the chef","She baked a cake","He runs every day"], ans:1, ex:"Passive: the subject receives the action. 'Dinner was cooked' — dinner didn't do anything!" },
+      { q:"What is an oxymoron?", opts:["Two contradictory terms placed together","A comparison using 'like'","Repeated consonant sounds","An extreme exaggeration"], ans:0, ex:"'Deafening silence,' 'bittersweet,' 'living dead' — contradictions that somehow make sense!" },
+    ],
+    master: [
+      { q:"What is the subjunctive mood?", opts:["A tense for past events","A mood expressing wishes, hypotheticals, or demands","A passive construction","A future tense form"], ans:1, ex:"'If I were you' — 'were' instead of 'was' signals the subjunctive. It marks counterfactuals and wishes!" },
+      { q:"Which rhetorical device repeats a word at the END of successive clauses?", opts:["Anaphora","Epistrophe","Chiasmus","Asyndeton"], ans:1, ex:"Epistrophe: 'government of the people, by the people, for the people' — repetition at the end!" },
+      { q:"What is a synecdoche?", opts:["Using part to represent the whole","An indirect cultural reference","An overstatement","Words that sound like their meaning"], ans:0, ex:"'All hands on deck' — 'hands' (part) represents sailors (whole). Or 'wheels' meaning a car!" },
+      { q:"In which grammatical case does a noun function as the direct object of a verb?", opts:["Nominative","Accusative","Genitive","Dative"], ans:1, ex:"Accusative marks the direct object: 'She saw him' — 'him' is accusative (object form of 'he')!" },
+      { q:"What is the difference between connotation and denotation?", opts:["They mean the same thing","Denotation is literal meaning; connotation is emotional association","Connotation is literal; denotation is figurative","They only apply to adjectives"], ans:1, ex:"'Home' and 'house' share a denotation but 'home' connotes warmth and belonging!" },
+      { q:"Which sentence contains a dangling modifier?", opts:["Running fast, he won the race","Walking to school, the rain started","She quickly finished her work","The dog barked at midnight"], ans:1, ex:"'Walking to school, the rain started' — who was walking? The rain? The modifier has no clear subject!" },
+    ],
   },
-  {
-    id: 'math',
-    name: 'Number Realm',
-    icon: '🔢',
-    color: '#7030c0',
-    desc: 'Math & Logic',
-    questions: [
-      { q: 'What is 17 × 8?',
-        opts: ['126', '132', '136', '144'], ans: 2 },
-      { q: 'What is the square root of 144?',
-        opts: ['11', '12', '13', '14'], ans: 1 },
-      { q: 'If two angles of a triangle are 90° and 45°, what is the third angle?',
-        opts: ['30°', '40°', '45°', '55°'], ans: 2 },
-      { q: 'What is 15% of 200?',
-        opts: ['25', '28', '30', '35'], ans: 2 },
-      { q: 'What is the next prime number after 17?',
-        opts: ['18', '19', '21', '23'], ans: 1 },
-    ]
+
+  geography: {
+    explorer: [
+      { q:"What is the biggest ocean in the world?", opts:["Atlantic","Indian","Arctic","Pacific"], ans:3, ex:"The Pacific Ocean covers more than 30% of Earth's surface — bigger than all land areas combined!" },
+      { q:"Which continent is the biggest?", opts:["Europe","Africa","Asia","Americas"], ans:2, ex:"Asia is the largest continent and home to more than half the world's population!" },
+      { q:"What is the capital of France?", opts:["London","Berlin","Paris","Rome"], ans:2, ex:"Paris is the capital of France — famous for the Eiffel Tower and the Louvre museum!" },
+      { q:"What do we call the imaginary line around the middle of Earth?", opts:["Meridian","Equator","Tropic","Horizon"], ans:1, ex:"The Equator divides Earth into the Northern and Southern Hemispheres!" },
+      { q:"Which country is the largest in the world by area?", opts:["USA","China","Canada","Russia"], ans:3, ex:"Russia spans 11 time zones and covers about 1/8 of Earth's total land area!" },
+      { q:"On which continent is the Amazon rainforest?", opts:["Africa","Asia","South America","Australia"], ans:2, ex:"The Amazon in South America (mostly Brazil) is the world's largest tropical rainforest!" },
+    ],
+    adventurer: [
+      { q:"What is the capital city of Australia?", opts:["Sydney","Melbourne","Canberra","Brisbane"], ans:2, ex:"Many guess Sydney, but Canberra is the capital — chosen as a compromise between Sydney and Melbourne!" },
+      { q:"Which is the longest river in the world?", opts:["Amazon","Mississippi","Yangtze","Nile"], ans:3, ex:"The Nile stretches ~6,650 km through northeastern Africa. The Amazon is the largest by volume!" },
+      { q:"What is the smallest country in the world?", opts:["Monaco","San Marino","Vatican City","Liechtenstein"], ans:2, ex:"Vatican City in Rome covers less than 0.5 km² — smaller than many city parks!" },
+      { q:"Which continent has the most countries?", opts:["Asia","Europe","Africa","South America"], ans:2, ex:"Africa has 54 recognized sovereign countries — more than any other continent!" },
+      { q:"Which mountain is the tallest in the world?", opts:["K2","Mont Blanc","Kilimanjaro","Mount Everest"], ans:3, ex:"Everest stands 8,849 m above sea level. K2 is second tallest and considered harder to climb!" },
+      { q:"What is the Sahara Desert?", opts:["The world's largest cold desert","The world's largest hot desert","A desert in Asia","A coastal desert"], ans:1, ex:"The Sahara in northern Africa spans ~9.2 million km² — about the size of the United States!" },
+    ],
+    champion: [
+      { q:"What is the Ring of Fire?", opts:["A volcanic region in Africa","A zone of volcanoes and earthquakes around the Pacific Ocean","A desert in Australia","A mountain range in Europe"], ans:1, ex:"The Pacific Ring of Fire hosts ~75% of the world's volcanoes and 90% of its earthquakes!" },
+      { q:"What is the capital of Canada?", opts:["Toronto","Montreal","Vancouver","Ottawa"], ans:3, ex:"Ottawa is Canada's capital since 1857. Toronto is the largest city but not the capital!" },
+      { q:"Which sea separates Europe from Africa?", opts:["Red Sea","Caspian Sea","Mediterranean Sea","Arabian Sea"], ans:2, ex:"The Mediterranean Sea separates southern Europe from northern Africa — it means 'middle of the Earth'!" },
+      { q:"What is the Tropic of Cancer?", opts:["The line at 23.5°N latitude","The line at 23.5°S latitude","The equator","The Arctic Circle"], ans:0, ex:"At 23.5°N, the Tropic of Cancer marks the northernmost point where the Sun can be directly overhead!" },
+      { q:"What is the deepest lake in the world?", opts:["Lake Superior","Lake Victoria","Lake Baikal","Caspian Sea"], ans:2, ex:"Lake Baikal in Siberia reaches 1,642 m depth and holds about 20% of Earth's fresh surface water!" },
+      { q:"How many time zones does Russia span?", opts:["9","10","11","12"], ans:2, ex:"Russia spans 11 time zones — from UTC+2 to UTC+12 — the most of any country!" },
+    ],
+    master: [
+      { q:"What is the Coriolis effect?", opts:["Ocean tides caused by the Moon","Deflection of air and water currents due to Earth's rotation","A type of monsoon wind","Plate tectonic movement"], ans:1, ex:"Earth's rotation deflects moving air right in the Northern Hemisphere, left in the Southern — creating spiral storms!" },
+      { q:"What geographic feature forms where two tectonic plates diverge?", opts:["Mountain range","Ocean trench","Rift valley","Volcanic island arc"], ans:2, ex:"Diverging plates pull apart, creating rift valleys — like the East African Rift or the Mid-Atlantic Ridge!" },
+      { q:"What is the name of the supercontinent that existed ~300 million years ago?", opts:["Gondwana","Laurasia","Pangaea","Rodinia"], ans:2, ex:"Pangaea ('all Earth') broke apart into Laurasia (north) and Gondwana (south) before becoming today's continents!" },
+      { q:"Which city lies on two continents?", opts:["Cairo","Istanbul","Athens","Dubai"], ans:1, ex:"Istanbul straddles Europe and Asia, divided by the Bosphorus Strait — making it uniquely bicontinental!" },
+      { q:"Which ocean current keeps Western Europe warmer than its latitude would suggest?", opts:["Humboldt Current","Kuroshio Current","Gulf Stream","Labrador Current"], ans:2, ex:"The Gulf Stream carries warm tropical water northeast, giving the UK and Norway milder winters!" },
+      { q:"What is the Fertile Crescent?", opts:["A region in Southeast Asia known for rice","A historic farming region arcing through the Middle East","Plains of central Africa","River deltas in South America"], ans:1, ex:"Stretching from the Nile to the Tigris-Euphrates, the Fertile Crescent is called the 'cradle of civilization'!" },
+    ],
   },
-  {
-    id: 'arts',
-    name: 'Arts & Culture',
-    icon: '🎭',
-    color: '#c02060',
-    desc: 'Art, Music & Literature',
-    questions: [
-      { q: 'Who painted the Mona Lisa?',
-        opts: ['Michelangelo', 'Raphael', 'Leonardo da Vinci', 'Caravaggio'], ans: 2 },
-      { q: 'Which Greek philosopher tutored Alexander the Great?',
-        opts: ['Socrates', 'Plato', 'Aristotle', 'Pythagoras'], ans: 2 },
-      { q: 'How many strings does a standard classical guitar have?',
-        opts: ['4', '5', '6', '8'], ans: 2 },
-      { q: 'Who wrote the play "Romeo and Juliet"?',
-        opts: ['Charles Dickens', 'William Shakespeare', 'Jane Austen', 'Mark Twain'], ans: 1 },
-      { q: 'What is the national dance of Argentina?',
-        opts: ['Samba', 'Salsa', 'Flamenco', 'Tango'], ans: 3 },
-    ]
+
+  nature: {
+    explorer: [
+      { q:"What do bees make?", opts:["Milk","Honey","Butter","Jam"], ans:1, ex:"Bees collect nectar from flowers and turn it into honey back at the hive — it takes nectar from 2 million flowers to make one jar!" },
+      { q:"How many legs does an insect have?", opts:["4","6","8","10"], ans:1, ex:"All insects have exactly 6 legs — it's one of the rules for being an insect! Spiders aren't insects because they have 8!" },
+      { q:"What is a baby cat called?", opts:["Pup","Cub","Kitten","Foal"], ans:2, ex:"A baby cat is a kitten! Baby dogs are puppies, baby bears are cubs, baby horses are foals." },
+      { q:"Which animal has a very long neck?", opts:["Elephant","Giraffe","Hippo","Rhino"], ans:1, ex:"A giraffe's neck can be up to 2 meters long — perfect for reaching leaves at the tops of trees!" },
+      { q:"What do birds use to fly?", opts:["Legs","Wings","Fins","Tails"], ans:1, ex:"Birds use wings to fly — they're like arms covered in feathers that catch air!" },
+      { q:"What does a tadpole grow into?", opts:["Lizard","Salamander","Frog","Fish"], ans:2, ex:"Tadpoles are baby frogs! They start with a tail and gills, then grow legs and breathe air!" },
+    ],
+    adventurer: [
+      { q:"What is the largest land animal on Earth?", opts:["Hippopotamus","Giraffe","African Elephant","White Rhinoceros"], ans:2, ex:"African elephants can weigh up to 7,000 kg — as much as 7 small cars!" },
+      { q:"What do you call an animal that eats only plants?", opts:["Carnivore","Omnivore","Herbivore","Predator"], ans:2, ex:"Herbivores only eat plants! Carnivores eat meat, and omnivores eat both (like humans)." },
+      { q:"Which bird cannot fly?", opts:["Eagle","Sparrow","Ostrich","Hawk"], ans:2, ex:"Ostriches can't fly but run up to 70 km/h — the fastest running bird and the world's largest bird!" },
+      { q:"What is the fastest land animal?", opts:["Lion","Cheetah","Horse","Greyhound"], ans:1, ex:"Cheetahs can sprint up to 120 km/h in short bursts — but they tire quickly and can't sustain it!" },
+      { q:"What does a caterpillar's transformation into a butterfly show?", opts:["Hibernation","Metamorphosis","Migration","Adaptation"], ans:1, ex:"Metamorphosis is a dramatic biological change in body structure. Complete metamorphosis has 4 stages: egg, larva, pupa, adult!" },
+      { q:"Which ocean animal is the largest in the world?", opts:["Great White Shark","Giant Squid","Blue Whale","Whale Shark"], ans:2, ex:"The blue whale is the largest animal ever known to exist — up to 33 m long and 180 tonnes!" },
+    ],
+    champion: [
+      { q:"What is the term for animals that are active at night?", opts:["Diurnal","Nocturnal","Crepuscular","Migratory"], ans:1, ex:"Nocturnal animals (owls, bats, hedgehogs) are active at night. Crepuscular means active at dawn/dusk!" },
+      { q:"What is symbiosis?", opts:["One species eating another","A close long-term interaction between two species","Animals migrating together","Plants competing for sunlight"], ans:1, ex:"Symbiosis types: mutualism (both benefit), commensalism (one benefits, other neutral), parasitism (one harms other)!" },
+      { q:"What process allows some animals to blend into their surroundings?", opts:["Mimicry","Camouflage","Hibernation","Mutation"], ans:1, ex:"Camouflage uses color/pattern matching to hide. Mimicry is copying another species' appearance for protection!" },
+      { q:"Which part of a tree transports water from roots to leaves?", opts:["Phloem","Cambium","Xylem","Bark"], ans:2, ex:"Xylem carries water upward; phloem carries sugar (made in leaves) downward to roots and growing parts!" },
+      { q:"What is the term for an animal that lives both in water and on land?", opts:["Reptile","Mammal","Amphibian","Marsupial"], ans:2, ex:"Amphibians (frogs, salamanders, newts) need water to breed but can live on land — 'amphi' means 'both' in Greek!" },
+      { q:"What is the largest ecosystem on Earth?", opts:["Amazon Rainforest","Sahara Desert","The Ocean","Taiga Forest"], ans:2, ex:"The ocean covers 71% of Earth's surface and holds 97% of all water. It's home to the most biodiversity on the planet!" },
+    ],
+    master: [
+      { q:"What is a keystone species?", opts:["The most abundant species in an ecosystem","A species with disproportionately large ecological impact relative to its abundance","An introduced invasive species","An endangered apex predator"], ans:1, ex:"Sea otters are keystone species — remove them and sea urchins explode in population, destroying kelp forests!" },
+      { q:"What is the term for maximum population an environment can sustain?", opts:["Biomass","Carrying capacity","Trophic level","Ecological niche"], ans:1, ex:"Carrying capacity (K) is the population limit set by available resources. Exceed it and the population crashes!" },
+      { q:"What primarily drives the nitrogen cycle?", opts:["Photosynthesis","Nitrogen-fixing bacteria","Evaporation","Solar radiation"], ans:1, ex:"Bacteria like Rhizobium in legume roots fix atmospheric N₂ into ammonia (NH₃) that plants can absorb!" },
+      { q:"What is an ecosystem?", opts:["A biome","All organisms of one species","A community of organisms plus their physical environment","Only the living components of an environment"], ans:2, ex:"An ecosystem = biotic (living) + abiotic (non-living) components interacting as a system!" },
+      { q:"What is convergent evolution?", opts:["Species in the same genus evolving apart","Unrelated species independently evolving similar traits","A species evolving unusually fast","Speciation from geographic isolation"], ans:1, ex:"Dolphins and sharks have similar body shapes despite being very different animals — both evolved for fast swimming!" },
+      { q:"What is the term for the role a species plays in its ecosystem?", opts:["Habitat","Niche","Territory","Biome"], ans:1, ex:"An ecological niche includes what an organism eats, where it lives, and how it interacts with other species!" },
+    ],
   },
-  {
-    id: 'space',
-    name: 'Space Station',
-    icon: '🚀',
-    color: '#2090c0',
-    desc: 'Space & Technology',
-    questions: [
-      { q: 'How many planets are in our solar system?',
-        opts: ['7', '8', '9', '10'], ans: 1 },
-      { q: 'What is the closest star to Earth (besides the Sun)?',
-        opts: ['Sirius', 'Betelgeuse', 'Proxima Centauri', 'Alpha Centauri A'], ans: 2 },
-      { q: 'In what year did humans first land on the Moon?',
-        opts: ['1965', '1967', '1969', '1971'], ans: 2 },
-      { q: 'What is the largest planet in our solar system?',
-        opts: ['Saturn', 'Neptune', 'Uranus', 'Jupiter'], ans: 3 },
-      { q: 'What does NASA stand for?',
-        opts: [
-          'National Aeronautics and Space Administration',
-          'National Aviation and Space Agency',
-          'North American Space Association',
-          'National Aerospace and Science Administration',
-        ], ans: 0 },
-    ]
-  },
-];
+};
 
 // ══════════════════════════════════════════════════════════
 //  GAME STATE
 // ══════════════════════════════════════════════════════════
-const state = {
-  currentWorld: null,
-  currentWorldIndex: -1,
-  questionIndex: 0,
-  lives: 3,
+const TIER_INFO = {
+  explorer:   { label:'Explorer',   emoji:'🌟', range:'Ages 5–7',   color:'#4ecdc4' },
+  adventurer: { label:'Adventurer', emoji:'⚔️', range:'Ages 8–11',  color:'#f7c948' },
+  champion:   { label:'Champion',   emoji:'🏆', range:'Ages 12–15', color:'#ff6b6b' },
+  master:     { label:'Master',     emoji:'🧠', range:'Ages 16–18', color:'#a78bfa' },
+};
+const CAT_INFO = {
+  science:   { label:'Science',   icon:'🔬' },
+  math:      { label:'Math',      icon:'➕' },
+  language:  { label:'Language',  icon:'📖' },
+  geography: { label:'Geography', icon:'🌍' },
+  nature:    { label:'Nature',    icon:'🐾' },
+};
+
+const G = {
+  age: 10,
+  tier: 'adventurer',
+  category: null,
+  questions: [],
+  qi: 0,
   score: 0,
-  worldScores: {},
-  completedWorlds: new Set(),
-  timerInterval: null,
-  timeLeft: 30,
+  correct: 0,
   answered: false,
 };
 
-// ── Persistence ────────────────────────────────────────────
-function loadProgress() {
-  try {
-    const saved = JSON.parse(localStorage.getItem('bq_progress') || '{}');
-    state.worldScores = saved.worldScores || {};
-    state.completedWorlds = new Set(saved.completedWorlds || []);
-  } catch(e) {}
+function ageToTier(age) {
+  if (age <= 7)  return 'explorer';
+  if (age <= 11) return 'adventurer';
+  if (age <= 15) return 'champion';
+  return 'master';
 }
 
-function saveProgress() {
-  try {
-    localStorage.setItem('bq_progress', JSON.stringify({
-      worldScores: state.worldScores,
-      completedWorlds: [...state.completedWorlds],
-    }));
-  } catch(e) {}
-}
-
-// ── Screens ────────────────────────────────────────────────
-function showScreen(id) {
+// ── SCREENS ────────────────────────────────────────────────
+function go(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
 }
 
-function goWorlds() {
-  renderWorldMap();
-  showScreen('screen-worlds');
+// ── AGE SCREEN ─────────────────────────────────────────────
+function changeAge(delta) {
+  G.age = Math.min(18, Math.max(5, G.age + delta));
+  document.getElementById('age-display').textContent = G.age;
+  updateTierPreview();
 }
 
-// ── Stars (start screen) ───────────────────────────────────
-function initStars() {
-  const canvas = document.getElementById('stars-canvas');
-  const ctx = canvas.getContext('2d');
-  function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+function updateTierPreview() {
+  const tier = ageToTier(G.age);
+  const info = TIER_INFO[tier];
+  document.getElementById('tier-preview').innerHTML =
+    `You'll play as: <strong>${info.emoji} ${info.label}</strong> — ${info.range}`;
+}
+
+function confirmAge() {
+  G.tier = ageToTier(G.age);
+  const info = TIER_INFO[G.tier];
+  document.getElementById('cat-hint').textContent =
+    `${info.emoji} ${info.label} level (${info.range}) — pick a subject!`;
+  go('s-category');
+}
+
+// ── QUIZ ───────────────────────────────────────────────────
+function startQuiz(category) {
+  G.category = category;
+  G.questions = shuffle([...QB[category][G.tier]]);
+  G.qi = 0;
+  G.score = 0;
+  G.correct = 0;
+  G.answered = false;
+
+  const ti = TIER_INFO[G.tier];
+  const ci = CAT_INFO[category];
+  document.getElementById('quiz-tier-label').textContent = ti.emoji + ' ' + ti.label;
+  document.getElementById('quiz-cat-label').textContent = ci.icon + ' ' + ci.label;
+
+  go('s-quiz');
+  renderQ();
+}
+
+function renderQ() {
+  const q = G.questions[G.qi];
+  const total = G.questions.length;
+
+  document.getElementById('quiz-qcount').textContent = `Q${G.qi + 1} / ${total}`;
+  document.getElementById('quiz-prog-bar').style.width = (G.qi / total * 100) + '%';
+  document.getElementById('quiz-score').textContent = G.score;
+  document.getElementById('quiz-mascot').textContent = '🦉';
+  document.getElementById('quiz-question').textContent = q.q;
+  document.getElementById('quiz-explain').className = '';
+  document.getElementById('quiz-explain').style.display = 'none';
+  document.getElementById('quiz-explain').textContent = '';
+
+  document.getElementById('quiz-options').innerHTML = q.opts.map((opt, i) =>
+    `<button class="opt" onclick="pick(${i})">${opt}</button>`
+  ).join('');
+
+  G.answered = false;
+}
+
+function pick(idx) {
+  if (G.answered) return;
+  G.answered = true;
+
+  const q = G.questions[G.qi];
+  const btns = document.querySelectorAll('.opt');
+  btns.forEach(b => b.disabled = true);
+
+  const correct = idx === q.ans;
+  btns[idx].classList.add(correct ? 'correct' : 'wrong');
+  if (!correct) btns[q.ans].classList.add('correct');
+
+  const mascot = document.getElementById('quiz-mascot');
+  mascot.textContent = correct ? '🥳' : '😢';
+  mascot.classList.add('mascot-pop');
+  setTimeout(() => mascot.classList.remove('mascot-pop'), 400);
+
+  if (correct) { G.score += 10; G.correct++; }
+
+  const exEl = document.getElementById('quiz-explain');
+  exEl.textContent = q.ex;
+  exEl.className = 'visible' + (correct ? '' : ' wrong-ex');
+  exEl.style.display = 'block';
+
+  setTimeout(() => {
+    G.qi++;
+    if (G.qi >= G.questions.length) { showResults(); } else { renderQ(); }
+  }, 2000);
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+// ── RESULTS ────────────────────────────────────────────────
+function showResults() {
+  const total = G.questions.length;
+  const pct = G.correct / total;
+  const stars = pct >= 5/6 ? '⭐⭐⭐' : pct >= 3/6 ? '⭐⭐' : '⭐';
+  const titles = ['Keep Exploring!', 'Well Done!', 'Outstanding!'];
+  const subs = [
+    'Every question you try makes you smarter. Keep going!',
+    'Great effort! You\'re building your knowledge!',
+    'Amazing! You\'re a true BrainQuest champion!',
+  ];
+  const mascots = ['🦉', '🥳', '🏆'];
+  const si = pct >= 5/6 ? 2 : pct >= 3/6 ? 1 : 0;
+
+  document.getElementById('result-mascot').textContent = mascots[si];
+  document.getElementById('result-title').textContent = titles[si];
+  document.getElementById('result-sub').textContent = subs[si];
+  document.getElementById('result-stars').textContent = stars;
+  document.getElementById('result-score').textContent = G.score;
+  document.getElementById('result-fraction').textContent = `${G.correct} out of ${total} correct`;
+
+  document.getElementById('result-again').onclick = () => startQuiz(G.category);
+
+  go('s-results');
+}
+
+// ── STARFIELD ──────────────────────────────────────────────
+(function initStars() {
+  const canvas = document.getElementById('starfield');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
   resize();
   window.addEventListener('resize', resize);
 
-  const stars = Array.from({ length: 220 }, () => ({
+  const stars = Array.from({ length: 200 }, () => ({
     x: Math.random(), y: Math.random(),
     r: Math.random() * 1.4 + 0.3,
-    a: Math.random(),
-    da: (Math.random() - 0.5) * 0.008,
+    a: Math.random(), da: (Math.random() - 0.5) * 0.007,
   }));
 
-  function draw() {
+  (function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     stars.forEach(s => {
       s.a += s.da;
-      if (s.a < 0.05 || s.a > 0.95) s.da *= -1;
+      if (s.a < 0.05 || s.a > 0.9) s.da *= -1;
       ctx.beginPath();
       ctx.arc(s.x * canvas.width, s.y * canvas.height, s.r, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(255,255,255,${s.a.toFixed(2)})`;
       ctx.fill();
     });
     requestAnimationFrame(draw);
-  }
-  draw();
-}
+  })();
+})();
 
-// ── World Map ──────────────────────────────────────────────
-function renderWorldMap() {
-  const done = state.completedWorlds.size;
-  document.getElementById('worlds-prog-bar').style.width = (done / WORLDS.length * 100) + '%';
-  document.getElementById('worlds-prog-text').textContent = `${done} / ${WORLDS.length}`;
-
-  document.getElementById('worlds-grid').innerHTML = WORLDS.map((w, i) => {
-    const completed = state.completedWorlds.has(w.id);
-    const best = state.worldScores[w.id] || 0;
-    const stars = getStarStr(best);
-    return `
-      <div class="world-card ${completed ? 'done' : ''}" onclick="startWorld(${i})" style="--world-color:${w.color}">
-        <div class="world-icon">${w.icon}</div>
-        <div class="world-name">${w.name}</div>
-        <div class="world-cat">${w.desc}</div>
-        ${completed
-          ? `<div class="world-stars">${stars}</div><div class="world-best">${best} pts</div>`
-          : `<div class="world-play">Play →</div>`}
-      </div>
-    `;
-  }).join('');
-}
-
-function getStarStr(score) {
-  // max per world = 5 * 150 = 750
-  const pct = Math.min(score / 750, 1);
-  const filled = Math.round(pct * 3);
-  return '★'.repeat(filled) + '☆'.repeat(3 - filled);
-}
-
-// ── Quiz ───────────────────────────────────────────────────
-function startWorld(idx) {
-  state.currentWorldIndex = idx;
-  state.currentWorld = WORLDS[idx];
-  state.questionIndex = 0;
-  state.lives = 3;
-  state.score = 0;
-  state.answered = false;
-  showScreen('screen-quiz');
-  renderQuestion();
-}
-
-function renderQuestion() {
-  const world = state.currentWorld;
-  const q = world.questions[state.questionIndex];
-
-  document.getElementById('quiz-world-name').textContent = world.icon + ' ' + world.name;
-  document.getElementById('quiz-q-count').textContent =
-    `Question ${state.questionIndex + 1} of ${world.questions.length}`;
-  renderLives();
-  document.getElementById('quiz-score').textContent = state.score;
-  document.getElementById('quiz-question').textContent = q.q;
-
-  document.getElementById('quiz-options').innerHTML = q.opts.map((opt, i) =>
-    `<button class="opt-btn" onclick="selectAnswer(${i})">${opt}</button>`
-  ).join('');
-
-  state.timeLeft = 30;
-  state.answered = false;
-  document.getElementById('feedback-overlay').style.display = 'none';
-  startTimer();
-}
-
-function renderLives() {
-  document.getElementById('quiz-lives').innerHTML =
-    '❤️'.repeat(state.lives) + '🖤'.repeat(3 - state.lives);
-}
-
-function startTimer() {
-  clearInterval(state.timerInterval);
-  updateTimerBar();
-  state.timerInterval = setInterval(() => {
-    state.timeLeft--;
-    updateTimerBar();
-    if (state.timeLeft <= 0) {
-      clearInterval(state.timerInterval);
-      if (!state.answered) handleTimeout();
-    }
-  }, 1000);
-}
-
-function updateTimerBar() {
-  const pct = (state.timeLeft / 30) * 100;
-  const bar = document.getElementById('timer-bar');
-  bar.style.width = pct + '%';
-  document.getElementById('timer-text').textContent = state.timeLeft + 's';
-  bar.style.background = pct > 60 ? '#4aaa6a' : pct > 30 ? '#c9a84c' : '#c0392b';
-}
-
-function selectAnswer(idx) {
-  if (state.answered) return;
-  state.answered = true;
-  clearInterval(state.timerInterval);
-
-  const q = state.currentWorld.questions[state.questionIndex];
-  const btns = document.querySelectorAll('.opt-btn');
-  btns.forEach(b => b.disabled = true);
-
-  if (idx === q.ans) {
-    btns[idx].classList.add('correct');
-    const timeBonus = Math.round((state.timeLeft / 30) * 50);
-    const earned = 100 + timeBonus;
-    state.score += earned;
-    document.getElementById('quiz-score').textContent = state.score;
-    showFeedback(true, '✓ Correct!', `+${earned} pts`);
-  } else {
-    btns[idx].classList.add('wrong');
-    btns[q.ans].classList.add('correct');
-    state.lives--;
-    renderLives();
-    showFeedback(false, '✗ Wrong!', '');
-  }
-
-  setTimeout(advance, 1600);
-}
-
-function handleTimeout() {
-  if (state.answered) return;
-  state.answered = true;
-  const q = state.currentWorld.questions[state.questionIndex];
-  const btns = document.querySelectorAll('.opt-btn');
-  btns.forEach(b => b.disabled = true);
-  btns[q.ans].classList.add('correct');
-  state.lives--;
-  renderLives();
-  showFeedback(false, "⏱ Time's Up!", '');
-  setTimeout(advance, 1600);
-}
-
-function showFeedback(correct, main, sub) {
-  const el = document.getElementById('feedback-overlay');
-  el.className = 'feedback-overlay ' + (correct ? 'correct' : 'wrong');
-  document.getElementById('feedback-main').textContent = main;
-  document.getElementById('feedback-sub').textContent = sub;
-  el.style.display = 'flex';
-}
-
-function advance() {
-  document.getElementById('feedback-overlay').style.display = 'none';
-  if (state.lives <= 0) { endWorld(false); return; }
-  state.questionIndex++;
-  if (state.questionIndex >= state.currentWorld.questions.length) { endWorld(true); return; }
-  renderQuestion();
-}
-
-function endWorld(won) {
-  clearInterval(state.timerInterval);
-  const world = state.currentWorld;
-
-  if (won) {
-    const prev = state.worldScores[world.id] || 0;
-    if (state.score > prev) state.worldScores[world.id] = state.score;
-    state.completedWorlds.add(world.id);
-    saveProgress();
-    if (state.completedWorlds.size === WORLDS.length) { showVictory(); return; }
-  }
-
-  document.getElementById('result-icon').textContent = won ? '🎉' : '😔';
-  document.getElementById('result-title').textContent = won ? 'Quest Complete!' : 'Quest Failed';
-  document.getElementById('result-world').textContent = world.icon + ' ' + world.name;
-  document.getElementById('result-score').textContent = state.score + ' pts';
-  document.getElementById('result-msg').textContent = won
-    ? 'Brilliant! You mastered this realm and earned ' + state.score + ' points!'
-    : 'Don\'t give up! Every great adventurer learns from defeat. Try again!';
-
-  const btn = document.getElementById('result-btn');
-  btn.textContent = won ? 'Choose Next World →' : 'Try Again';
-  btn.onclick = won
-    ? () => { renderWorldMap(); showScreen('screen-worlds'); }
-    : () => startWorld(state.currentWorldIndex);
-
-  document.getElementById('result-back').onclick = () => { renderWorldMap(); showScreen('screen-worlds'); };
-  showScreen('screen-result');
-}
-
-// ── Grand Victory ──────────────────────────────────────────
-function showVictory() {
-  const total = Object.values(state.worldScores).reduce((a, b) => a + b, 0);
-  document.getElementById('victory-total').textContent = total.toLocaleString();
-
-  document.getElementById('victory-world-scores').innerHTML = WORLDS.map(w => {
-    const s = state.worldScores[w.id] || 0;
-    return `<div class="vic-world-chip">${w.icon} ${w.name}: <span class="chip-score">${s}</span></div>`;
-  }).join('');
-
-  showScreen('screen-victory');
-  launchConfetti();
-}
-
-// ── Confetti ───────────────────────────────────────────────
-function launchConfetti() {
-  const canvas = document.getElementById('confetti-canvas');
-  const ctx = canvas.getContext('2d');
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  const COLORS = ['#c9a84c', '#f0d080', '#4aaa6a', '#7040cc', '#e05080', '#60c0e0'];
-  const particles = Array.from({ length: 180 }, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height - canvas.height,
-    w: Math.random() * 10 + 5,
-    h: Math.random() * 5 + 3,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
-    vx: (Math.random() - 0.5) * 2.5,
-    vy: Math.random() * 3 + 1.5,
-    rot: Math.random() * 360,
-    rotv: (Math.random() - 0.5) * 6,
-    alpha: 1,
-  }));
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    let any = false;
-    particles.forEach(p => {
-      p.x += p.vx; p.y += p.vy; p.rot += p.rotv;
-      if (p.y > canvas.height) p.alpha -= 0.015;
-      if (p.alpha > 0) {
-        any = true;
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, p.alpha);
-        ctx.fillStyle = p.color;
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot * Math.PI / 180);
-        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-        ctx.restore();
-      }
-    });
-    if (any) requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-// ── Reset ──────────────────────────────────────────────────
-function resetProgress() {
-  if (!confirm('Reset all progress and scores?')) return;
-  state.worldScores = {};
-  state.completedWorlds = new Set();
-  saveProgress();
-}
-
-// ── Init ───────────────────────────────────────────────────
-loadProgress();
-initStars();
+// ── INIT ───────────────────────────────────────────────────
+updateTierPreview();
+document.getElementById('age-display').textContent = G.age;
 </script>
 </body>
 </html>
