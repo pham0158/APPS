@@ -676,9 +676,105 @@
       line-height: 1.8;
     }
 
+    /* ── QA / TESTING SECTION ── */
+    .qa-section {
+      background: #0a1510;
+      padding: 80px 48px;
+      border-top: 1px solid rgba(200,230,208,0.06);
+    }
+    .qa-inner {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .qa-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .qa-badge {
+      font-size: 10px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #f59e0b;
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 100px;
+      padding: 5px 14px;
+    }
+    .qa-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 300;
+      color: var(--white);
+    }
+    .qa-desc {
+      font-size: 13px;
+      color: rgba(200,230,208,0.45);
+      line-height: 1.8;
+      margin-bottom: 36px;
+      max-width: 560px;
+      font-weight: 300;
+    }
+    .qa-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .qa-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(245,158,11,0.04);
+      border: 1px solid rgba(245,158,11,0.18);
+      border-radius: 10px;
+      padding: 20px 24px;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+      flex: 1 1 240px;
+      max-width: 320px;
+    }
+    .qa-card:hover {
+      background: rgba(245,158,11,0.09);
+      border-color: rgba(245,158,11,0.4);
+    }
+    .qa-card-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+    .qa-card-body {}
+    .qa-card-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      color: var(--white);
+      margin-bottom: 3px;
+    }
+    .qa-card-url {
+      font-size: 11px;
+      color: rgba(245,158,11,0.6);
+      letter-spacing: 0.5px;
+    }
+    .qa-warning {
+      margin-top: 28px;
+      font-size: 12px;
+      color: rgba(200,230,208,0.28);
+      line-height: 1.7;
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .qa-warning::before {
+      content: '⚠';
+      color: rgba(245,158,11,0.4);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
     @media (max-width: 768px) {
       .about-section { padding: 80px 24px; }
       .explore-section { padding: 80px 24px; }
+      .qa-section { padding: 60px 24px; }
     }
 
     /* ── Accessibility floating button ── */
@@ -876,6 +972,41 @@
 
 
       </div>
+    </div>
+  </section>
+
+  <!-- QA / TESTING -->
+  <section class="qa-section">
+    <div class="qa-inner">
+      <div class="qa-header">
+        <span class="qa-badge">🧪 In Testing</span>
+        <h2 class="qa-title">QA Builds</h2>
+      </div>
+      <p class="qa-desc">These are pre-release versions currently under testing. Features may be incomplete, experimental, or broken. Use them to try what's coming next.</p>
+      <div class="qa-grid">
+        <a href="/soniq-qa/" class="qa-card">
+          <div class="qa-card-icon">🎵</div>
+          <div class="qa-card-body">
+            <div class="qa-card-name">Soniq QA</div>
+            <div class="qa-card-url">gogreenvue.com/soniq-qa/</div>
+          </div>
+        </a>
+        <a href="/brainquest-qa/" class="qa-card">
+          <div class="qa-card-icon">⚔️</div>
+          <div class="qa-card-body">
+            <div class="qa-card-name">BrainQuest QA</div>
+            <div class="qa-card-url">gogreenvue.com/brainquest-qa/</div>
+          </div>
+        </a>
+        <a href="/pickleball-qa/" class="qa-card">
+          <div class="qa-card-icon">🥒</div>
+          <div class="qa-card-body">
+            <div class="qa-card-name">Pickleball QA</div>
+            <div class="qa-card-url">gogreenvue.com/pickleball-qa/</div>
+          </div>
+        </a>
+      </div>
+      <p class="qa-warning">QA builds are unstable and may change or break at any time. Not recommended for production use.</p>
     </div>
   </section>
 
