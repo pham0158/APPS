@@ -497,6 +497,190 @@
     body.highcontrast .btn-primary { background: #ffcc00 !important; color: #000 !important; font-weight: 900 !important; }
     body.highcontrast .btn-outline { border-width: 2px !important; font-weight: 700 !important; }
 
+    /* ── ABOUT SECTION ── */
+    .about-section {
+      background: var(--green-deep);
+      padding: 100px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 60% at 80% 50%, rgba(45,122,74,0.12) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 10% 80%, rgba(201,168,76,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .about-inner {
+      max-width: 700px;
+      margin: 0 auto;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .about-eyebrow {
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    .about-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(32px, 4.5vw, 52px);
+      font-weight: 300;
+      color: var(--white);
+      line-height: 1.15;
+      margin-bottom: 32px;
+    }
+    .about-body {
+      font-size: 15px;
+      color: rgba(200,230,208,0.72);
+      line-height: 1.85;
+      margin-bottom: 28px;
+      font-weight: 300;
+    }
+    .about-philosophy {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-style: italic;
+      color: var(--gold-light);
+      margin-bottom: 40px;
+    }
+    .about-divider {
+      width: 48px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.4;
+      margin: 0 auto 40px;
+    }
+    .tech-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+    .tech-pill {
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(200,230,208,0.55);
+      border: 1px solid rgba(200,230,208,0.18);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-weight: 500;
+    }
+
+    /* ── EXPLORE SECTION ── */
+    .explore-section {
+      background: var(--green-deep);
+      padding: 100px 48px;
+      position: relative;
+      overflow: hidden;
+    }
+    .explore-section::before {
+      content: '🥒';
+      position: absolute;
+      font-size: 300px;
+      right: -40px;
+      top: 50%;
+      transform: translateY(-50%);
+      opacity: 0.05;
+      pointer-events: none;
+    }
+    .explore-inner {
+      max-width: 1020px;
+      position: relative;
+      z-index: 1;
+      margin: 0 auto;
+    }
+    .explore-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .explore-eyebrow {
+      font-size: 10px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .explore-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 5vw, 58px);
+      font-weight: 300;
+      color: var(--white);
+      line-height: 1.1;
+    }
+
+    /* Filter buttons */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 48px;
+    }
+    .filter-btn {
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+      padding: 9px 22px;
+      border-radius: 100px;
+      border: 1px solid rgba(200,230,208,0.3);
+      background: transparent;
+      color: rgba(200,230,208,0.6);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .filter-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold-light);
+    }
+    .filter-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--green-deep);
+    }
+
+    /* Coming Soon card */
+    .card-coming-soon {
+      background: rgba(200,230,208,0.03);
+      border: 1px dashed rgba(200,230,208,0.18);
+      border-radius: 12px;
+      padding: 36px 40px;
+      max-width: 320px;
+      width: 100%;
+      text-align: center;
+      opacity: 0.6;
+    }
+    .card-coming-soon .cs-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+    }
+    .card-coming-soon .cs-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      color: rgba(200,230,208,0.6);
+      margin-bottom: 12px;
+    }
+    .card-coming-soon .cs-desc {
+      font-size: 13px;
+      color: rgba(200,230,208,0.35);
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .about-section { padding: 80px 24px; }
+      .explore-section { padding: 80px 24px; }
+    }
+
     /* ── Accessibility floating button ── */
     #a11y-btn {
       position: fixed; bottom: 20px; right: 20px; z-index: 9999;
@@ -527,7 +711,7 @@
     <a href="/" class="nav-logo">GoGreenVue</a>
     <ul class="nav-links">
       <li><a href="#about">About</a></li>
-      <li><a href="#features">Features</a></li>
+      <li><a href="#explore">Explore</a></li>
       <li><a href="/soniq" style="color:var(--gold-light);">🎵 Soniq</a></li>
       <li><a href="/brainquest" style="color:#a080ff;">⚔️ BrainQuest</a></li>
       <li><a href="/pickleball-v3" style="color:var(--green-light);">🥒 Pickleball RRA</a></li>
@@ -594,15 +778,46 @@
     </div>
   </div>
 
-  <!-- APPS -->
-  <section class="pickleball-section" id="features">
-    <div class="pickleball-inner" style="max-width:1020px;">
+  <!-- ABOUT -->
+  <section class="about-section" id="about">
+    <div class="about-inner">
+      <p class="about-eyebrow">About GoGreenVue</p>
+      <h2 class="about-title">Built with real communities<br><em>in mind</em></h2>
+      <p class="about-body">GoGreenVue is a personal project by Vu Pham — a developer who believes great tools should be free, accessible, and fun. Every app here is built with real communities in mind: pickleball players, young learners, and music lovers.</p>
+      <p class="about-philosophy">One step at a time. One tool at a time.</p>
+      <div class="about-divider"></div>
+      <div class="tech-stack">
+        <span class="tech-pill">React</span>
+        <span class="tech-pill">TypeScript</span>
+        <span class="tech-pill">Firebase</span>
+        <span class="tech-pill">Web Audio API</span>
+        <span class="tech-pill">GitHub Pages</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPLORE -->
+  <section class="explore-section" id="explore">
+    <div class="explore-inner">
+
+      <div class="explore-header">
+        <p class="explore-eyebrow">Our Apps</p>
+        <h2 class="explore-title">Explore</h2>
+      </div>
+
+      <!-- Filter bar -->
+      <div class="filter-bar">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="games">🎮 Games</button>
+        <button class="filter-btn" data-filter="music">🎵 Music</button>
+        <button class="filter-btn" data-filter="sports">🏓 Sports</button>
+      </div>
 
       <!-- App cards -->
-      <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:56px;">
+      <div id="app-grid" style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:56px;">
 
         <!-- Soniq card -->
-        <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;text-align:center;">
+        <div data-tag="music" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;text-align:center;">
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold-light);margin-bottom:10px;">Music · Sound · Vibe</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--white);margin-bottom:10px;">Soniq</div>
           <div style="font-size:13px;color:rgba(200,230,208,0.55);line-height:1.8;margin-bottom:20px;">A music companion that syncs lyrics to audio in real time. Paste any lyrics, load your track, and Soniq auto-aligns every line using AI speech recognition — so you always know exactly where you are in the song. Export as a waveform video or download the timed LRC file.</div>
@@ -610,7 +825,7 @@
         </div>
 
         <!-- BrainQuest card -->
-        <div style="background:rgba(112,64,204,0.08);border:1px solid rgba(112,64,204,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;text-align:center;position:relative;">
+        <div data-tag="games" style="background:rgba(112,64,204,0.08);border:1px solid rgba(112,64,204,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;text-align:center;position:relative;">
           <div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:#7040cc;color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 16px;border-radius:20px;white-space:nowrap;">Version 2 · Adaptive</div>
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#a080ff;margin-bottom:10px;">Trivia · Adventure · Ages 5–18</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--white);margin-bottom:10px;">BrainQuest</div>
@@ -619,12 +834,19 @@
         </div>
 
         <!-- Pickleball V3 card -->
-        <div style="background:rgba(74,158,74,0.08);border:1px solid rgba(74,158,74,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;position:relative;text-align:center;">
+        <div data-tag="sports" style="background:rgba(74,158,74,0.08);border:1px solid rgba(74,158,74,0.35);border-radius:12px;padding:36px 40px;max-width:320px;width:100%;position:relative;text-align:center;">
           <div style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--green-bright);color:#fff;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 16px;border-radius:20px;white-space:nowrap;">Latest Version</div>
           <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--green-light);margin-bottom:10px;">Version 3 · Multi-Group</div>
           <div style="font-family:'Cormorant Garamond',serif;font-size:28px;color:var(--white);margin-bottom:10px;">Pickleball RRA</div>
           <div style="font-size:13px;color:rgba(200,230,208,0.55);line-height:1.8;margin-bottom:20px;">A round-robin tournament organizer built for pickleball communities. Add players, set courts, and let the app generate fair pairings automatically. Supports multiple groups playing at different locations simultaneously, private password-protected sessions, and a live leaderboard.</div>
           <a href="/pickleball-v3" class="btn-primary" style="font-size:12px;padding:13px 36px;">🥒 Launch App →</a>
+        </div>
+
+        <!-- Coming Soon card -->
+        <div data-tag="all" class="card-coming-soon">
+          <div class="cs-icon">🚀</div>
+          <div class="cs-title">More Coming Soon</div>
+          <div class="cs-desc">New tools are always in the works. Check back or follow along at gogreenvue@gmail.com</div>
         </div>
 
       </div>
@@ -723,6 +945,22 @@
       const saved = localStorage.getItem(A11Y_KEY);
       if (saved && MODES.includes(saved)) applyA11y(saved);
     } catch(e) {}
+
+    // ── Filter buttons ──
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const filter = btn.dataset.filter;
+        // Update active state
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Show/hide cards
+        document.querySelectorAll('#app-grid [data-tag]').forEach(card => {
+          const tag = card.dataset.tag;
+          const show = filter === 'all' || tag === filter || tag === 'all';
+          card.style.display = show ? '' : 'none';
+        });
+      });
+    });
   </script>
 </body>
 </html>
