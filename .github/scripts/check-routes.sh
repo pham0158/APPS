@@ -8,7 +8,7 @@ pass=0
 fail=0
 
 for url in "$@"; do
-  read -r status time <<< "$(curl -o /dev/null -s -w "%{http_code} %{time_total}" "$url")"
+  read -r status time <<< "$(curl -o /dev/null -s -L -w "%{http_code} %{time_total}" "$url")"
 
   if [[ "$status" =~ ^2 ]]; then
     echo "PASS [$status] ${time}s — $url"
