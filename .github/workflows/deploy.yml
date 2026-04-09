@@ -83,8 +83,10 @@ jobs:
       # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
-          mkdir -p deploy/brainquest
-          cp brainquest/index.html deploy/brainquest/index.html
+          if [ -f brainquest/index.html ]; then
+            mkdir -p deploy/brainquest
+            cp brainquest/index.html deploy/brainquest/index.html
+          fi
 
       # ── BRAINQUEST QA ─────────────────────────────────────────
       - name: Copy BrainQuest QA
