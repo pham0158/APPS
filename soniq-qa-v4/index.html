@@ -993,8 +993,8 @@
       <div class="control-row" style="margin-bottom:0;">
         <div class="control-label">Model<small>Size vs accuracy</small></div>
         <select id="whisper-model" class="model-select">
-          <option value="Xenova/whisper-tiny">Tiny (39 MB) — fast</option>
-          <option value="Xenova/whisper-base" selected>Base (78 MB) — recommended</option>
+          <option value="Xenova/whisper-tiny" selected>Tiny (39 MB) — fast default</option>
+          <option value="Xenova/whisper-base">Base (78 MB) — better on short files</option>
         </select>
       </div>
       <div class="control-row" style="margin-bottom:0;">
@@ -1066,6 +1066,13 @@
           <button class="pill-btn active bg-style-btn" data-style="grid">Grid Neon</button>
           <button class="pill-btn bg-style-btn" data-style="sunset">Sunset Glow</button>
           <button class="pill-btn bg-style-btn" data-style="midnight">Midnight Vinyl</button>
+        </div>
+      </div>
+      <div class="setting-box">
+        <div class="setting-label">Export Speed</div>
+        <div class="pill-row">
+          <button class="pill-btn active export-speed-btn" data-profile="fast4k">Fast 4K</button>
+          <button class="pill-btn export-speed-btn" data-profile="smooth4k">Smooth 4K</button>
         </div>
       </div>
     </div>
@@ -1257,6 +1264,12 @@ let backgroundStyle = 'grid';
 let exportPresetName = 'TikTok / Reels';
 let autoRunBusy = false;
 let previewLimitSec = null;
+let transcriptionPlan = null;
+let exportProfile = 'fast4k';
+
+const LOCAL_ASR_FAST_MODE_SEC = 180;
+const LOCAL_ASR_SOFT_LIMIT_SEC = 240;
+const LOCAL_ASR_HARD_LIMIT_SEC = 480;
 
 // ─── DOM ───────────────────────────────────────────────────────────────
 const dropZone      = document.getElementById('drop-zone');
@@ -1399,6 +1412,23 @@ document.querySelectorAll('.bg-style-btn').forEach(btn => {
     backgroundStyle = btn.dataset.style;
     updateWizardState();
   });
+});
+
+document.querySelectorAll('.export-speed-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.export-speed-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    exportProfile = btn.dataset.profile;
+    updateWizardState();
+  });
+});
+
+whisperModel.addEventListener('change', () => {
+  if (sourceBuffer) syncTranscriptionPlanUI();
+});
+
+whisperLanguage.addEventListener('change', () => {
+  if (sourceBuffer) syncTranscriptionPlanUI();
 });
 
 advancedToggle.addEventListener('click', () => {
@@ -1585,11 +1615,90 @@ function updateWizardState() {
   } else if (!hasEnhanced) {
     wizardSummary.textContent = `Lyrics ready • ${exportPresetName} • enhance audio before export`;
   } else {
-    wizardSummary.textContent = `Ready to export • ${exportPresetName} • ${selectedRatio === '916' ? '9:16' : '16:9'} • ${lyricStyle}`;
+    wizardSummary.textContent = `Ready to export • ${exportPresetName} • ${selectedRatio === '916' ? '9:16' : '16:9'} • ${lyricStyle} • ${exportProfile === 'fast4k' ? 'Fast 4K' : 'Smooth 4K'}`;
   }
 
   previewClipBtn.disabled = !hasEnhanced;
-  quickBuildBtn.disabled = !hasAudio || autoRunBusy;
+  quickBuildBtn.disabled = !hasAudio || autoRunBusy || !!(transcriptionPlan && !transcriptionPlan.allow && !lrcData.length && !lrcRawLines.length);
+}
+
+function buildTranscriptionPlan(durationSeconds) {
+  const duration = Number(durationSeconds || 0);
+  if (!duration) {
+    return {
+      mode: 'fast',
+      model: whisperModel.value,
+      timestampMode: 'word',
+      chunkLengthSec: 18,
+      strideLengthSec: 3,
+      timeoutMs: 90000,
+      label: 'Fast local mode',
+      allow: true,
+      summary: 'Short audio: fast local transcription with word timing.',
+    };
+  }
+
+  if (duration > LOCAL_ASR_HARD_LIMIT_SEC) {
+    return {
+      mode: 'blocked',
+      allow: false,
+      summary: 'This file is too long for reliable browser transcription. Split it, upload a shorter clip, or use a manual lyrics file.',
+    };
+  }
+
+  if (duration > LOCAL_ASR_SOFT_LIMIT_SEC) {
+    return {
+      mode: 'safe',
+      model: 'Xenova/whisper-tiny',
+      timestampMode: true,
+      chunkLengthSec: 30,
+      strideLengthSec: 5,
+      timeoutMs: 120000,
+      label: 'Safe local mode',
+      allow: true,
+      summary: 'Longer file: using tiny model and segment timing to avoid browser stalls.',
+    };
+  }
+
+  if (duration > LOCAL_ASR_FAST_MODE_SEC) {
+    return {
+      mode: 'balanced',
+      model: 'Xenova/whisper-tiny',
+      timestampMode: true,
+      chunkLengthSec: 24,
+      strideLengthSec: 4,
+      timeoutMs: 100000,
+      label: 'Balanced local mode',
+      allow: true,
+      summary: 'Medium file: using faster segment timing for better reliability.',
+    };
+  }
+
+  return {
+    mode: 'precise',
+    model: whisperModel.value,
+    timestampMode: 'word',
+    chunkLengthSec: 18,
+    strideLengthSec: 3,
+    timeoutMs: 90000,
+    label: 'Precise local mode',
+    allow: true,
+    summary: 'Short file: word-level timing enabled for cleaner lyric sync.',
+  };
+}
+
+function syncTranscriptionPlanUI() {
+  transcriptionPlan = buildTranscriptionPlan(sourceBuffer?.duration || 0);
+  if (!transcriptionPlan.allow) {
+    autosyncInfo.innerHTML = `Browser transcription is disabled for this file length.<br><strong style="color:var(--text)">Use a shorter clip, split the song, or load a lyrics file manually.</strong>`;
+    autosyncBtn.disabled = true;
+    return;
+  }
+
+  whisperModel.value = transcriptionPlan.model;
+  autosyncBtn.disabled = !sourceBuffer;
+  const fileDuration = sourceBuffer ? formatTime(sourceBuffer.duration) : '—';
+  autosyncInfo.innerHTML = `${transcriptionPlan.summary}<br>File length: <strong style="color:var(--text)">${fileDuration}</strong> · ${transcriptionPlan.label}.<br>If a lyrics file is loaded, SONIQ re-times it instead of generating fresh text.`;
 }
 
 // ─── Audio Drop & Load ──────────────────────────────────────────────────
@@ -1644,8 +1753,9 @@ function loadFile(file) {
         if (el) el.value = val;
         if (label && s) label.textContent = s.fmt(val);
       });
+      syncTranscriptionPlanUI();
       updateWizardState();
-      if (autoMode.checked && !autoRunBusy) {
+      if (autoMode.checked && transcriptionPlan?.allow && !autoRunBusy) {
         autoRunBusy = true;
         updateWizardState();
         try {
@@ -1676,6 +1786,8 @@ function clearAll() {
   autosyncProg.classList.remove('visible');
   langBadge.classList.remove('visible');
   renderLyricsOutput([]);
+  transcriptionPlan = null;
+  autosyncInfo.innerHTML = `Generates timestamped lyrics in <strong style="color:var(--text)">Vietnamese or English</strong> using Whisper AI.<br>Load an audio file, choose a language, then click Generate Lyrics.<br>If a lyrics file is loaded, SONIQ uses it as source text and only re-times it.`;
   setStatus('', 'Load an audio file to begin');
   clearCanvas();
   hideLyric();
@@ -2389,36 +2501,40 @@ function bufferToWav(buffer) {
 }
 
 // ─── Offline 4K MP4 Export ───────────────────────────────────────────────
-// Radix-2 Cooley-Tukey FFT (in-place, power-of-2 N)
-function fftInPlace(re, im) {
-  const N = re.length;
-  let j = 0;
-  for (let i = 1; i < N; i++) {
-    let bit = N >> 1;
-    for (; j & bit; bit >>= 1) j ^= bit;
-    j ^= bit;
-    if (i < j) {
-      [re[i], re[j]] = [re[j], re[i]];
-      [im[i], im[j]] = [im[j], im[i]];
-    }
+function getExportConfig() {
+  return exportProfile === 'smooth4k'
+    ? { fps: 30, bitrate: 30_000_000, frameStep: 1, label: 'Smooth 4K' }
+    : { fps: 24, bitrate: 18_000_000, frameStep: 1, label: 'Fast 4K' };
+}
+
+function buildMonoMix(buffer) {
+  const monoData = new Float32Array(buffer.length);
+  for (let c = 0; c < buffer.numberOfChannels; c++) {
+    const ch = buffer.getChannelData(c);
+    for (let i = 0; i < ch.length; i++) monoData[i] += ch[i] / buffer.numberOfChannels;
   }
-  for (let len = 2; len <= N; len <<= 1) {
-    const ang = -2 * Math.PI / len;
-    const wRe = Math.cos(ang), wIm = Math.sin(ang);
-    for (let i = 0; i < N; i += len) {
-      let cRe = 1, cIm = 0;
-      for (let k = 0; k < len >> 1; k++) {
-        const uRe = re[i+k], uIm = im[i+k];
-        const half = len >> 1;
-        const vRe = re[i+k+half]*cRe - im[i+k+half]*cIm;
-        const vIm = re[i+k+half]*cIm + im[i+k+half]*cRe;
-        re[i+k] = uRe + vRe; im[i+k] = uIm + vIm;
-        re[i+k+half] = uRe - vRe; im[i+k+half] = uIm - vIm;
-        const nc = cRe*wRe - cIm*wIm;
-        cIm = cRe*wIm + cIm*wRe; cRe = nc;
-      }
+  return monoData;
+}
+
+function sampleFrameBars(monoData, sr, elapsed, count) {
+  const result = new Uint8Array(count);
+  const center = Math.floor(elapsed * sr);
+  const windowSize = Math.max(256, Math.floor(sr * 0.018));
+  const half = Math.floor((count * windowSize) / 2);
+  let start = Math.max(0, center - half);
+
+  for (let i = 0; i < count; i++) {
+    let peak = 0;
+    const chunkStart = start + i * windowSize;
+    const chunkEnd = Math.min(monoData.length, chunkStart + windowSize);
+    for (let j = chunkStart; j < chunkEnd; j += 8) {
+      const amp = Math.abs(monoData[j] || 0);
+      if (amp > peak) peak = amp;
     }
+    result[i] = Math.max(8, Math.min(255, Math.round(peak * 255 * 2.6)));
   }
+
+  return result;
 }
 
 downloadMp4Btn.addEventListener('click', exportVideoOffline);
@@ -2438,46 +2554,17 @@ async function exportVideoOffline() {
   downloadMp4Btn.disabled = true;
   downloadWavBtn.disabled = true;
 
-  const FPS      = 30;
+  const exportConfig = getExportConfig();
+  const FPS      = exportConfig.fps;
   const duration = enhancedBuffer.duration;
   const total    = Math.ceil(duration * FPS);
   const sr       = enhancedBuffer.sampleRate;
   const numCh    = enhancedBuffer.numberOfChannels;
-  const FFT_SIZE = 1024;
-  const bufLen   = FFT_SIZE >> 1;
+  const visualBins = selectedRatio === '916' ? 72 : 120;
 
-  // ── Pre-compute frequency data for every frame ─────────────────
-  setStatus('processing', 'Pre-computing frequency data…');
+  setStatus('processing', `Preparing ${exportConfig.label} render…`);
   await new Promise(r => setTimeout(r, 0));
-
-  const monoData = new Float32Array(enhancedBuffer.length);
-  for (let c = 0; c < numCh; c++) {
-    const ch = enhancedBuffer.getChannelData(c);
-    for (let i = 0; i < ch.length; i++) monoData[i] += ch[i] / numCh;
-  }
-
-  const hann = new Float32Array(FFT_SIZE);
-  for (let i = 0; i < FFT_SIZE; i++) hann[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (FFT_SIZE - 1));
-
-  const allFreq = new Array(total);
-  for (let f = 0; f < total; f++) {
-    const start = Math.floor((f / FPS) * sr);
-    const re = new Float32Array(FFT_SIZE);
-    const im = new Float32Array(FFT_SIZE);
-    for (let i = 0; i < FFT_SIZE; i++) {
-      const idx = start + i;
-      re[i] = (idx < monoData.length ? monoData[idx] : 0) * hann[i];
-    }
-    fftInPlace(re, im);
-    const freq = new Uint8Array(bufLen);
-    for (let i = 0; i < bufLen; i++) {
-      const mag = Math.sqrt(re[i]*re[i] + im[i]*im[i]);
-      const db  = 20 * Math.log10(Math.max(mag, 1e-10)) + 100;
-      freq[i]   = Math.max(0, Math.min(255, db * 2.55));
-    }
-    allFreq[f] = freq;
-    if (f % 500 === 499) await new Promise(r => setTimeout(r, 0));
-  }
+  const monoData = buildMonoMix(enhancedBuffer);
 
   // ── Set up encoders ────────────────────────────────────────────
   setStatus('processing', 'Setting up 4K encoder…');
@@ -2499,7 +2586,7 @@ async function exportVideoOffline() {
     });
     vidEnc.configure({
       codec: 'avc1.640034', width: W, height: H,
-      bitrate: 40_000_000, framerate: FPS, bitrateMode: 'variable', avc: { format: 'avc' },
+      bitrate: exportConfig.bitrate, framerate: FPS, bitrateMode: 'variable', avc: { format: 'avc' },
     });
 
     const audEnc = new AudioEncoder({
@@ -2524,7 +2611,8 @@ async function exportVideoOffline() {
     // ── Encode video frames ───────────────────────────────────────
     for (let f = 0; f < total; f++) {
       const elapsed = f / FPS;
-      drawRecordingFrame(allFreq[f], bufLen, getLyricAt(elapsed), elapsed, duration);
+      const frameBars = sampleFrameBars(monoData, sr, elapsed, visualBins);
+      drawRecordingFrame(frameBars, visualBins, getLyricAt(elapsed), elapsed, duration);
       const ts    = Math.round(elapsed * 1_000_000);
       const frame = new VideoFrame(recCanvas, { timestamp: ts, duration: Math.round(1_000_000 / FPS) });
       vidEnc.encode(frame, { keyFrame: f % 60 === 0 });
@@ -2532,7 +2620,7 @@ async function exportVideoOffline() {
 
       if (f % 50 === 49) {
         const pct = Math.round((f + 1) / total * 100);
-        setStatus('processing', `Encoding 4K video — ${pct}%`);
+        setStatus('processing', `Encoding ${exportConfig.label} video — ${pct}%`);
         await new Promise(r => setTimeout(r, 0));
         while (vidEnc.encodeQueueSize > 30) await new Promise(r => setTimeout(r, 16));
       }
@@ -2548,9 +2636,9 @@ async function exportVideoOffline() {
     const a     = document.createElement('a');
     const base  = (currentFile?.name || 'audio').replace(/\.[^.]+$/, '');
     const label = ratio === '916' ? '9x16' : '16x9';
-    a.href = url; a.download = `${base}_SONIQ_${exportPresetName.replace(/[^\w]+/g, '_')}_${label}.mp4`; a.click();
+    a.href = url; a.download = `${base}_SONIQ_${exportPresetName.replace(/[^\w]+/g, '_')}_${exportConfig.label.replace(/[^\w]+/g, '_')}_${label}.mp4`; a.click();
     URL.revokeObjectURL(url);
-    setStatus('done', `✓ 4K MP4 exported — ${label}`);
+    setStatus('done', `✓ ${exportConfig.label} exported — ${label}`);
   } catch(err) {
     setStatus('', `Export error: ${err.message}`);
     console.error(err);
@@ -2575,7 +2663,7 @@ let loadedModel = null;
 
 self.onmessage = async ({ data }) => {
   if (data.type !== 'run') return;
-  const { model, audio, language } = data;
+  const { model, audio, language, timestampMode, chunkLengthSec, strideLengthSec, expectedChunks } = data;
   try {
     if (!pipe || loadedModel !== model) {
       pipe = null;
@@ -2584,15 +2672,25 @@ self.onmessage = async ({ data }) => {
         progress_callback: (p) => self.postMessage({ type: 'progress', ...p }),
       });
     }
-    self.postMessage({ type: 'status', msg: 'Transcribing audio — detecting words and timing…' });
+    self.postMessage({
+      type: 'status',
+      msg: expectedChunks
+        ? 'Transcribing audio — processing chunks in browser…'
+        : 'Transcribing audio — processing in browser…'
+    });
     const result = await pipe(audio, {
       task: 'transcribe',
       language: language ?? null,
-      return_timestamps: 'word',  // word-level timestamps for precise lyric alignment
-      chunk_length_s: 20,         // smaller chunks = better timing granularity
-      stride_length_s: 3,
+      return_timestamps: timestampMode,
+      chunk_length_s: chunkLengthSec,
+      stride_length_s: strideLengthSec,
     });
-    self.postMessage({ type: 'result', chunks: result.chunks ?? [], language: result.language ?? null });
+    self.postMessage({
+      type: 'result',
+      chunks: result.chunks ?? [],
+      language: result.language ?? null,
+      timestampMode,
+    });
   } catch (err) {
     self.postMessage({ type: 'error', message: err.message });
   }
@@ -2612,11 +2710,24 @@ function getWhisperWorker(model) {
   return whisperWorker;
 }
 
-function runWhisperWorker(model, audioData, language) {
+function runWhisperWorker(model, audioData, language, options = {}) {
   return new Promise((resolve, reject) => {
     const worker = getWhisperWorker(model);
+    let timeoutId = null;
+
+    const resetWatchdog = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        try { worker.terminate(); } catch {}
+        whisperWorker = null;
+        reject(new Error('Browser transcription timed out. Retry uses fast mode on shorter clips most reliably.'));
+      }, options.timeoutMs ?? 90000);
+    };
+
+    resetWatchdog();
 
     worker.onmessage = ({ data }) => {
+      resetWatchdog();
       switch (data.type) {
         case 'progress':
           if (data.status === 'downloading' || data.status === 'progress') {
@@ -2636,17 +2747,31 @@ function runWhisperWorker(model, audioData, language) {
           autosyncMsg.textContent = data.msg;
           break;
         case 'result':
-          resolve({ chunks: data.chunks, language: data.language });
+          clearTimeout(timeoutId);
+          resolve({ chunks: data.chunks, language: data.language, timestampMode: data.timestampMode });
           break;
         case 'error':
+          clearTimeout(timeoutId);
           reject(new Error(data.message));
           break;
       }
     };
-    worker.onerror = (e) => reject(new Error(e.message || 'Worker crashed'));
+    worker.onerror = (e) => {
+      clearTimeout(timeoutId);
+      reject(new Error(e.message || 'Worker crashed'));
+    };
 
     // Transfer the ArrayBuffer (zero-copy) to the worker
-    worker.postMessage({ type: 'run', model, audio: audioData, language }, [audioData.buffer]);
+    worker.postMessage({
+      type: 'run',
+      model,
+      audio: audioData,
+      language,
+      timestampMode: options.timestampMode ?? 'word',
+      chunkLengthSec: options.chunkLengthSec ?? 18,
+      strideLengthSec: options.strideLengthSec ?? 3,
+      expectedChunks: options.expectedChunks ?? null,
+    }, [audioData.buffer]);
   });
 }
 
@@ -2665,17 +2790,29 @@ async function autoSyncLyrics() {
   langBadge.classList.remove('visible');
 
   try {
-    const modelId = whisperModel.value;
+    transcriptionPlan = buildTranscriptionPlan(audioBuffer.duration);
+    if (!transcriptionPlan.allow) throw new Error(transcriptionPlan.summary);
+
+    const modelId = transcriptionPlan.model;
     const requestedLanguage = whisperLanguage.value;
     const whisperLanguageHint = mapWhisperLanguage(requestedLanguage);
-    autosyncMsg.textContent = `Starting ${modelId.split('/')[1]} — model downloads once and is cached`;
+    const expectedChunks = Math.max(1, Math.ceil(audioBuffer.duration / transcriptionPlan.chunkLengthSec));
+    autosyncMsg.textContent = `Starting ${modelId.split('/')[1]} — ${transcriptionPlan.label}`;
 
     // Resample to 16 kHz mono on main thread (fast, non-blocking)
     autosyncMsg.textContent = 'Resampling audio to 16 kHz…';
-    const audio16k = await resampleTo16k(audioBuffer);
+    autosyncFill.style.width = '8%';
+    const audio16k = await resampleTo16k(audioBuffer, transcriptionPlan.mode === 'safe');
 
     // Run Whisper entirely in the Web Worker (non-blocking)
-    const { chunks, language } = await runWhisperWorker(modelId, audio16k, whisperLanguageHint);
+    autosyncMsg.textContent = `Transcribing ${expectedChunks} chunk${expectedChunks === 1 ? '' : 's'} in ${transcriptionPlan.mode} mode…`;
+    const { chunks, language, timestampMode } = await runWhisperWorker(modelId, audio16k, whisperLanguageHint, {
+      timestampMode: transcriptionPlan.timestampMode,
+      chunkLengthSec: transcriptionPlan.chunkLengthSec,
+      strideLengthSec: transcriptionPlan.strideLengthSec,
+      expectedChunks,
+      timeoutMs: transcriptionPlan.timeoutMs,
+    });
     const resolvedLanguage = requestedLanguage === 'auto' ? language : requestedLanguage;
 
     if (resolvedLanguage) {
@@ -2685,16 +2822,21 @@ async function autoSyncLyrics() {
 
     if (!chunks.length) throw new Error('No speech detected in audio');
 
-    // chunks are now word-level: [{timestamp:[start,end], text:" word"}]
     if (lrcRawLines.length > 0) {
-      lrcData = alignLyricsToWords(lrcRawLines, chunks);
-      lrcMeta.textContent = `${lrcData.length} lines aligned to vocals · AI timing`;
+      if (timestampMode === 'word') {
+        lrcData = alignLyricsToWords(lrcRawLines, chunks);
+      } else {
+        lrcData = alignLyricsToSegments(lrcRawLines, chunks);
+      }
+      lrcMeta.textContent = `${lrcData.length} lines aligned to vocals · ${timestampMode === 'word' ? 'word' : 'segment'} timing`;
     } else if (lrcData.length > 0) {
       const lines = lrcData.map(l => l.text);
-      lrcData = alignLyricsToWords(lines, chunks);
-      lrcMeta.textContent = `${lrcData.length} lines re-timed to vocals · AI timing`;
+      lrcData = timestampMode === 'word' ? alignLyricsToWords(lines, chunks) : alignLyricsToSegments(lines, chunks);
+      lrcMeta.textContent = `${lrcData.length} lines re-timed to vocals · ${timestampMode === 'word' ? 'word' : 'segment'} timing`;
     } else {
-      lrcData = groupWordsIntoLyrics(chunks, resolvedLanguage);
+      lrcData = timestampMode === 'word'
+        ? groupWordsIntoLyrics(chunks, resolvedLanguage)
+        : groupSegmentsIntoLyrics(chunks, resolvedLanguage);
       lrcMeta.textContent = `${lrcData.length} lyric lines generated by AI`;
       lrcLabel.textContent = `AI Lyrics (${langName(resolvedLanguage || 'auto')})`;
       lrcZone.classList.add('lrc-loaded');
@@ -2718,6 +2860,7 @@ async function autoSyncLyrics() {
 
 async function resampleTo16k(audioBuffer) {
   const TARGET_SR = 16000;
+  const trimSilence = arguments[1] || false;
   const offCtx = new OfflineAudioContext(
     1,
     Math.ceil(audioBuffer.duration * TARGET_SR),
@@ -2728,7 +2871,15 @@ async function resampleTo16k(audioBuffer) {
   src.connect(offCtx.destination);
   src.start(0);
   const rendered = await offCtx.startRendering();
-  return rendered.getChannelData(0); // Float32Array at 16 kHz
+  const mono = rendered.getChannelData(0);
+  if (!trimSilence) return mono;
+
+  let start = 0;
+  let end = mono.length - 1;
+  const threshold = 0.008;
+  while (start < mono.length && Math.abs(mono[start]) < threshold) start++;
+  while (end > start && Math.abs(mono[end]) < threshold) end--;
+  return mono.slice(start, end + 1);
 }
 
 function mapWhisperLanguage(value) {
@@ -2752,6 +2903,18 @@ function buildWordTimeline(chunks) {
       raw: c.text.trim(),
     }))
     .filter(w => w.norm.length > 0);
+}
+
+function buildSegmentTimeline(chunks) {
+  return chunks
+    .filter(c => c.timestamp?.[0] != null && c.text?.trim())
+    .map(c => ({
+      time: c.timestamp[0],
+      end: c.timestamp?.[1] ?? c.timestamp[0],
+      raw: c.text.trim(),
+      norm: normWord(c.text),
+    }))
+    .filter(item => item.raw.length > 0);
 }
 
 // Align lyric lines to word-level timestamps.
@@ -2803,6 +2966,15 @@ function alignLyricsToWords(lines, chunks) {
   return result;
 }
 
+function alignLyricsToSegments(lines, chunks) {
+  const segments = buildSegmentTimeline(chunks);
+  if (!segments.length) return lines.map((text, i) => ({ time: i * 3, text }));
+  return lines.map((text, index) => ({
+    time: segments[Math.min(index, segments.length - 1)].time,
+    text,
+  }));
+}
+
 function groupWordsIntoLyrics(chunks, language) {
   const words = buildWordTimeline(chunks);
   const result = [];
@@ -2824,6 +2996,28 @@ function groupWordsIntoLyrics(chunks, language) {
     lastEnd = w.end ?? w.time;
   }
   if (group.length) result.push({ time: groupStart ?? 0, text: group.join(' ') });
+  return result;
+}
+
+function groupSegmentsIntoLyrics(chunks, language) {
+  const segments = buildSegmentTimeline(chunks);
+  const result = [];
+  const maxSegments = language === 'vi' ? 3 : 2;
+  let group = [];
+  let start = null;
+
+  for (const seg of segments) {
+    if (start === null) start = seg.time;
+    group.push(seg.raw);
+    const endSentence = /[.!?]$/.test(seg.raw);
+    if (group.length >= maxSegments || endSentence) {
+      result.push({ time: start, text: group.join(' ').replace(/\s+/g, ' ').trim() });
+      group = [];
+      start = null;
+    }
+  }
+
+  if (group.length) result.push({ time: start ?? 0, text: group.join(' ').replace(/\s+/g, ' ').trim() });
   return result;
 }
 
