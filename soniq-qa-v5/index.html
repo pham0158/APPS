@@ -2257,10 +2257,8 @@ async function finalizeRecording() {
   recordBtn.disabled = true;
 
   try {
-    await recVideoEncoder.flush();
-    recVideoEncoder.close();
-    await recAudioEncoder.flush();
-    recAudioEncoder.close();
+    if (recVideoEncoder.state !== 'closed') { await recVideoEncoder.flush(); recVideoEncoder.close(); }
+    if (recAudioEncoder.state !== 'closed') { await recAudioEncoder.flush(); recAudioEncoder.close(); }
     recMuxer.finalize();
 
     const blob  = new Blob([recMuxTarget.buffer], { type: 'video/mp4' });
@@ -2475,8 +2473,8 @@ async function exportVideoOffline() {
     }
 
     setStatus('processing', 'Finalizing MP4…');
-    await vidEnc.flush(); vidEnc.close();
-    await audEnc.flush(); audEnc.close();
+    if (vidEnc.state !== 'closed') { await vidEnc.flush(); vidEnc.close(); }
+    if (audEnc.state !== 'closed') { await audEnc.flush(); audEnc.close(); }
     muxer.finalize();
 
     const blob  = new Blob([muxTarget.buffer], { type: 'video/mp4' });
