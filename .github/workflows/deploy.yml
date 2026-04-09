@@ -80,6 +80,14 @@ jobs:
             cp soniq/qa/index.html deploy/soniq-qa/index.html
           fi
 
+      # ── SONIQ QA V3 ────────────────────────────────────────────
+      - name: Copy Soniq QA V3
+        run: |
+          if [ -f soniq/qa-v3/index.html ]; then
+            mkdir -p deploy/soniq-qa-v3
+            cp soniq/qa-v3/index.html deploy/soniq-qa-v3/index.html
+          fi
+
       # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
