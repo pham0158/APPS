@@ -26,6 +26,7 @@ jobs:
             https://gogreenvue.com/pickleball \
             https://gogreenvue.com/pickleball-qa/ \
             https://gogreenvue.com/pickleball-v2 \
+            https://gogreenvue.com/pickleball-v3 \
             https://gogreenvue.com/brainquest \
             https://gogreenvue.com/brainquest-qa/)
           exit_code=$?
