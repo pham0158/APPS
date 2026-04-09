@@ -37,7 +37,7 @@ const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
     'anthropic-version': '2023-06-01',
   },
   body: JSON.stringify({
-    model: 'claude-sonnet-4-20250514',
+    model: 'claude-sonnet-4-5',
     max_tokens: 2000,
     messages: [
       {
@@ -49,6 +49,10 @@ const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
 });
 
 const anthropicData = await anthropicRes.json();
+if (anthropicData.type === 'error' || !anthropicData.content) {
+  console.error('❌ Step 3: Anthropic API error:', JSON.stringify(anthropicData, null, 2));
+  process.exit(1);
+}
 const rawContent = anthropicData?.content?.[0]?.text ?? '';
 console.log('✅ Step 3: Claude responded');
 
