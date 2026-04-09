@@ -2433,6 +2433,7 @@ async function exportVideoOffline() {
     vidEnc.configure({
       codec: 'avc1.640034', width: W, height: H,
       bitrate: exportConfig.bitrate, framerate: FPS, bitrateMode: 'variable', avc: { format: 'avc' },
+      latencyMode: 'quality',
     });
 
     const audEnc = new AudioEncoder({
@@ -2454,21 +2455,31 @@ async function exportVideoOffline() {
       audEnc.encode(ad); ad.close();
     }
 
-    // ── Encode video frames ───────────────────────────────────────
+    // ── Pre-compute visualization data for all frames ─────────────
+    setStatus('processing', 'Pre-computing visualizations…');
+    await new Promise(r => setTimeout(r, 0));
+    const allFrameBars = new Array(total);
     for (let f = 0; f < total; f++) {
-      const elapsed = f / FPS;
-      const frameBars = sampleFrameBars(monoData, sr, elapsed, visualBins);
-      drawRecordingFrame(frameBars, visualBins, getLyricAt(elapsed), elapsed, duration);
-      const ts    = Math.round(elapsed * 1_000_000);
-      const frame = new VideoFrame(recCanvas, { timestamp: ts, duration: Math.round(1_000_000 / FPS) });
-      vidEnc.encode(frame, { keyFrame: f % 60 === 0 });
+      allFrameBars[f] = sampleFrameBars(monoData, sr, f / FPS, visualBins);
+    }
+
+    // ── Encode video frames ───────────────────────────────────────
+    const frameDur = Math.round(1_000_000 / FPS);
+    let lastYield  = performance.now();
+    for (let f = 0; f < total; f++) {
+      drawRecordingFrame(allFrameBars[f], visualBins, getLyricAt(f / FPS), f / FPS, duration);
+      const ts    = Math.round(f / FPS * 1_000_000);
+      const frame = new VideoFrame(recCanvas, { timestamp: ts, duration: frameDur });
+      vidEnc.encode(frame, { keyFrame: f % 120 === 0 });
       frame.close();
 
-      if (f % 50 === 49) {
+      // Yield only when queue backs up or every ~200ms to keep UI responsive
+      if (vidEnc.encodeQueueSize > 50 || performance.now() - lastYield > 200) {
         const pct = Math.round((f + 1) / total * 100);
         setStatus('processing', `Encoding ${exportConfig.label} video — ${pct}%`);
+        while (vidEnc.encodeQueueSize > 20) await new Promise(r => setTimeout(r, 8));
         await new Promise(r => setTimeout(r, 0));
-        while (vidEnc.encodeQueueSize > 30) await new Promise(r => setTimeout(r, 16));
+        lastYield = performance.now();
       }
     }
 
