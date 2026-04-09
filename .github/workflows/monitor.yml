@@ -22,6 +22,7 @@ jobs:
           output=$(.github/scripts/check-routes.sh \
             https://gogreenvue.com/ \
             https://gogreenvue.com/soniq \
+            https://gogreenvue.com/soniq-qa/ \
             https://gogreenvue.com/pickleball \
             https://gogreenvue.com/brainquest)
           exit_code=$?
