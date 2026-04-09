@@ -24,7 +24,10 @@ jobs:
             https://gogreenvue.com/soniq \
             https://gogreenvue.com/soniq-qa/ \
             https://gogreenvue.com/pickleball \
-            https://gogreenvue.com/brainquest)
+            https://gogreenvue.com/pickleball-qa/ \
+            https://gogreenvue.com/pickleball-v2 \
+            https://gogreenvue.com/brainquest \
+            https://gogreenvue.com/brainquest-qa/)
           exit_code=$?
           echo "$output"
           failed=$(echo "$output" | grep '^FAIL' | awk '{print $NF}' | tr '\n' ' ' | xargs)
