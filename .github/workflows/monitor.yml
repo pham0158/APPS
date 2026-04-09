@@ -1,0 +1,40 @@
+name: Site Health Monitor
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make script executable
+        run: chmod +x .github/scripts/check-routes.sh
+
+      - name: Run route health checks
+        id: checks
+        run: |
+          set +e
+          output=$(.github/scripts/check-routes.sh \
+            https://gogreenvue.com/ \
+            https://gogreenvue.com/soniq \
+            https://gogreenvue.com/pickleball \
+            https://gogreenvue.com/brainquest)
+          exit_code=$?
+          echo "$output"
+          failed=$(echo "$output" | grep '^FAIL' | awk '{print $NF}' | tr '\n' ' ' | xargs)
+          echo "failed_routes=$failed" >> "$GITHUB_OUTPUT"
+          exit $exit_code
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EMAILJS_SERVICE_ID: ${{ secrets.EMAILJS_SERVICE_ID }}
+          FAILED_ROUTES: ${{ steps.checks.outputs.failed_routes }}
+        run: node .github/scripts/agent.mjs
