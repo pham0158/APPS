@@ -72,6 +72,12 @@ jobs:
           mkdir -p deploy/soniq
           cp soniq/index.html deploy/soniq/index.html
 
+      # ── SONIQ v1 (archived) ───────────────────────────────────
+      - name: Copy SONIQ v1 archive
+        run: |
+          mkdir -p deploy/soniq-v1
+          cp soniq-v1/index.html deploy/soniq-v1/index.html
+
       # ── SONIQ QA (when soniq/qa/index.html exists) ────────────
       - name: Copy Soniq QA
         run: |
