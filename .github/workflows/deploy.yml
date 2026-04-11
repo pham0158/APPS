@@ -104,6 +104,12 @@ jobs:
             cp soniq/qa-v5/index.html deploy/soniq-qa-v5/index.html
           fi
 
+      # ── SONIQ QA v6 ──────────────────────────────────────────
+      - name: Copy SONIQ QA v6
+        run: |
+          mkdir -p deploy/soniq-qa-v6
+          cp soniq/qa-v6/index.html deploy/soniq-qa-v6/index.html
+
       # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
