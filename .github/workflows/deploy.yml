@@ -122,6 +122,12 @@ jobs:
           mkdir -p deploy/soniq-qa-v7
           cp soniq/qa-v7/index.html deploy/soniq-qa-v7/index.html
 
+      # ── SONIQ QA v8 ──────────────────────────────────────────
+      - name: Copy SONIQ QA v8
+        run: |
+          mkdir -p deploy/soniq-qa-v8
+          cp soniq/qa-v8/index.html deploy/soniq-qa-v8/index.html
+
       # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
