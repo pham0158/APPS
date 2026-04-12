@@ -1542,6 +1542,7 @@ let rnnoiseModule    = null;
 let rnnoiseAvailable = false;
 let rnnoiseLoading   = false;
 let rnnoiseApplied   = false; // set true when it actually ran this session
+let rnnoiseError     = false; // set true if WASM load fails
 
 // ── Badge / UI helpers ────────────────────────────────────────────────────────
 function setRNNoiseBadge(mode) {
@@ -1630,6 +1631,7 @@ async function loadRNNoise() {
     console.warn('[SONIQ] RNNoise unavailable:', err.message);
     rnnoiseAvailable = false;
     rnnoiseLoading   = false;
+    rnnoiseError     = true;
     rnnoiseModule    = null;
     setRNNoiseBadge('unavailable');
   }
