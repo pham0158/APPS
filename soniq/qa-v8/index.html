@@ -425,6 +425,44 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 .btn-reset { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-dim); border-radius: var(--radius-sm); font-size: 11px; font-weight: 600; padding: 5px 11px; cursor: pointer; transition: all .15s; }
 .btn-reset:hover { border-color: var(--accent-warn); color: var(--accent-warn); }
 
+/* ── Home button ─────────────────────────────────────────── */
+.header-left { display: flex; align-items: center; gap: 14px; }
+.home-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--text-secondary); font-size: 15px;
+  text-decoration: none; transition: all .15s;
+}
+.home-btn:hover { border-color: var(--border-bright); color: var(--text-primary); background: var(--bg-card-hover); }
+
+/* ── Master-in-Stem collapsible panel ────────────────────── */
+.stem-master-panel {
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.stem-master-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 13px 18px; cursor: pointer; user-select: none;
+  transition: background .15s;
+}
+.stem-master-toggle:hover { background: rgba(108,99,255,.04); }
+.stem-master-toggle-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-secondary);
+  display: flex; align-items: center; gap: 7px;
+}
+.stem-master-toggle-caret { font-size: 10px; color: var(--text-dim); transition: transform .2s; }
+.stem-master-panel.open .stem-master-toggle-caret { transform: rotate(180deg); }
+.stem-master-body { display: none; padding: 0 18px 18px; }
+.stem-master-panel.open .stem-master-body { display: block; }
+#spectrumCanvas2 {
+  width: 100%; height: 80px; display: block;
+  border-radius: var(--radius-sm); background: var(--bg-input);
+  margin-top: 14px;
+}
+
 /* ── Tab bar ─────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
@@ -463,11 +501,14 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
 
 <!-- ══════════════════ HEADER ══════════════════ -->
 <header>
-  <div class="logo">
-    <div class="logo-mark">SQ</div>
-    <div class="logo-text">
-      <span class="brand">SONIQ</span>
-      <span class="sub">Audio Lab v8</span>
+  <div class="header-left">
+    <a href="https://gogreenvue.com/" class="home-btn" title="gogreenvue.com">🏠</a>
+    <div class="logo">
+      <div class="logo-mark">SQ</div>
+      <div class="logo-text">
+        <span class="brand">SONIQ</span>
+        <span class="sub">Audio Lab v8</span>
+      </div>
     </div>
   </div>
   <div class="header-right">
@@ -525,6 +566,122 @@ input[type="range"]::-moz-range-thumb { width: 14px; height: 14px; border-radius
     <input type="file" id="addFileInput" multiple accept=".wav,audio/wav" style="display:none">
   </div>
 </div>
+
+<!-- ══ Master This Mix (collapsible) ══ -->
+<div class="stem-master-panel" id="stemMasterPanel">
+  <div class="stem-master-toggle" id="stemMasterToggle">
+    <span class="stem-master-toggle-title">⚡ Master This Mix</span>
+    <span class="stem-master-toggle-caret">▼</span>
+  </div>
+  <div class="stem-master-body">
+
+    <!-- Presets row -->
+    <div style="margin-bottom:16px;padding-top:4px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:10px;">Presets</div>
+      <div class="presets-row">
+        <button class="preset-btn" data-preset="streaming"><span class="pi">🎧</span>Streaming</button>
+        <button class="preset-btn" data-preset="club"><span class="pi">🎛️</span>Club / EDM</button>
+        <button class="preset-btn" data-preset="vocal"><span class="pi">🎤</span>Vocal / Podcast</button>
+        <button class="preset-btn" data-preset="warm"><span class="pi">🎸</span>Warm Analog</button>
+        <button class="preset-btn" data-preset="transparent"><span class="pi">💎</span>Transparent HD</button>
+      </div>
+    </div>
+
+    <!-- Master grid (mirrors Tab 1 — same audio nodes) -->
+    <div class="master-grid">
+
+      <!-- EQ -->
+      <div class="mpanel">
+        <div class="mpanel-title">EQ</div>
+        <div class="sl-row">
+          <span class="sl-lbl">Bass</span>
+          <div class="sl-wrap"><input type="range" id="sm-bass" min="-12" max="12" step=".5" value="0"></div>
+          <span class="sl-val" id="sv-m-bass">0 dB</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Presence</span>
+          <div class="sl-wrap"><input type="range" id="sm-pres" min="-12" max="12" step=".5" value="0"></div>
+          <span class="sl-val" id="sv-m-pres">0 dB</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Air</span>
+          <div class="sl-wrap"><input type="range" id="sm-air" min="-12" max="12" step=".5" value="0"></div>
+          <span class="sl-val" id="sv-m-air">0 dB</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">De-Mud</span>
+          <div class="sl-wrap"><input type="range" id="sm-demud" min="0" max="100" step="1" value="0"></div>
+          <span class="sl-val" id="sv-m-demud">0%</span>
+        </div>
+      </div>
+
+      <!-- Compression -->
+      <div class="mpanel">
+        <div class="mpanel-title">Compression</div>
+        <div class="sl-row">
+          <span class="sl-lbl">Threshold</span>
+          <div class="sl-wrap"><input type="range" id="sm-thr" min="-60" max="0" step="1" value="-18"></div>
+          <span class="sl-val" id="sv-m-thr">-18 dB</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Ratio</span>
+          <div class="sl-wrap"><input type="range" id="sm-rat" min="1" max="20" step=".5" value="4"></div>
+          <span class="sl-val" id="sv-m-rat">4:1</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Attack</span>
+          <div class="sl-wrap"><input type="range" id="sm-atk" min=".1" max="200" step=".1" value="10"></div>
+          <span class="sl-val" id="sv-m-atk">10 ms</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Release</span>
+          <div class="sl-wrap"><input type="range" id="sm-rel" min="10" max="1000" step="5" value="100"></div>
+          <span class="sl-val" id="sv-m-rel">100 ms</span>
+        </div>
+      </div>
+
+      <!-- Output + LUFS -->
+      <div class="mpanel">
+        <div class="mpanel-title">Output</div>
+        <div class="sl-row">
+          <span class="sl-lbl">St. Width</span>
+          <div class="sl-wrap"><input type="range" id="sm-width" min="0" max="200" step="1" value="100"></div>
+          <span class="sl-val" id="sv-m-width">100%</span>
+        </div>
+        <div class="sl-row">
+          <span class="sl-lbl">Output Gain</span>
+          <div class="sl-wrap"><input type="range" id="sm-gain" min="-12" max="12" step=".5" value="0"></div>
+          <span class="sl-val" id="sv-m-gain">0 dB</span>
+        </div>
+        <div class="sl-row" style="margin-top:10px;">
+          <span class="sl-lbl" style="color:var(--accent-2)">Limiter</span>
+          <div style="flex:1;display:flex;align-items:center;gap:9px;">
+            <div class="toggle-sw on" id="sm-limiter"></div>
+            <span style="font-size:11px;color:var(--text-secondary)">-1 dBFS ceiling</span>
+          </div>
+        </div>
+        <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px;">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;">Loudness</div>
+          <div class="lufs-row">
+            <div class="lufs-grp"><div class="lufs-num" id="sm-lufsInt">—</div><div class="lufs-lbl">Integrated</div></div>
+            <div class="lufs-grp"><div class="lufs-num" id="sm-lufsST">—</div><div class="lufs-lbl">Short-term</div></div>
+            <div class="lufs-grp"><div class="lufs-num" id="sm-lufsTP">—</div><div class="lufs-lbl">True Peak</div></div>
+          </div>
+          <div class="lufs-track"><div class="lufs-fill" id="sm-lufsBar"></div></div>
+        </div>
+      </div>
+
+    </div><!-- .master-grid -->
+
+    <!-- Spectrum analyzer (mirror) -->
+    <div class="spectrum-wrap">
+      <div class="spectrum-lbl">Spectrum Analyzer</div>
+      <canvas id="spectrumCanvas2"></canvas>
+    </div>
+
+  </div><!-- .stem-master-body -->
+</div><!-- #stemMasterPanel -->
+
 </div><!-- #tab-stem -->
 
 <!-- ══════════════════ TAB: MASTER ══════════════════ -->
@@ -1343,6 +1500,7 @@ function initMasterSliders() {
       syncPresetBtns();
       updateMasterBus();
       saveState();
+      syncMasterMirrors();
     });
   });
 
@@ -1354,6 +1512,7 @@ function initMasterSliders() {
       masterState.limiter = !masterState.limiter;
       limEl.classList.toggle('on', masterState.limiter);
       activePreset = null; syncPresetBtns(); updateMasterBus(); saveState();
+      syncMasterMirrors();
     });
   }
 }
@@ -1380,6 +1539,7 @@ function applyPreset(name) {
   syncPresetBtns();
   updateMasterBus();
   saveState();
+  syncMasterMirrors();
 }
 
 function syncPresetBtns() {
@@ -2033,19 +2193,16 @@ function startSpectrumLoop() {
   if (!canvas || !analyser) return;
   const data = new Float32Array(analyser.frequencyBinCount);
 
-  function draw() {
-    if (!isPlaying) return;
-    analyser.getFloatFrequencyData(data);
-    const W = canvas.width  = canvas.offsetWidth  || 400;
-    const H = canvas.height = canvas.offsetHeight || 80;
-    const c = canvas.getContext('2d');
+  function drawToCanvas(cv) {
+    if (!cv) return;
+    const W = cv.width  = cv.offsetWidth  || 400;
+    const H = cv.height = cv.offsetHeight || 80;
+    const c = cv.getContext('2d');
     c.fillStyle = '#0d0d15';
     c.fillRect(0, 0, W, H);
-
     const bins     = data.length;
     const barCount = Math.min(120, Math.floor(W / 3));
     const barW     = W / barCount - 1;
-
     for (let i = 0; i < barCount; i++) {
       const logIdx = Math.floor(Math.pow(i / barCount, 2) * bins);
       const db  = Math.max(-90, Math.min(0, data[logIdx] || -90));
@@ -2053,13 +2210,19 @@ function startSpectrumLoop() {
       const barH = pct * (H - 4) + 2;
       const x    = i * (barW + 1);
       const t    = i / barCount;
-      // Blue (#4da6ff) → pink (#ff6b9d)
       const r = Math.round(77  + (255 - 77)  * t);
       const g = Math.round(166 + (107 - 166) * t);
       const b = Math.round(255 + (157 - 255) * t);
       c.fillStyle = `rgba(${r},${g},${b},0.9)`;
       c.fillRect(x, H - barH, barW, barH - 2);
     }
+  }
+
+  function draw() {
+    if (!isPlaying) return;
+    analyser.getFloatFrequencyData(data);
+    drawToCanvas(canvas);
+    drawToCanvas(document.getElementById('spectrumCanvas2'));
     animFrameId = requestAnimationFrame(draw);
   }
   animFrameId = requestAnimationFrame(draw);
@@ -2067,13 +2230,15 @@ function startSpectrumLoop() {
 
 function stopSpectrumLoop() {
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
-  const canvas = document.getElementById('spectrumCanvas');
-  if (!canvas) return;
-  const W = canvas.width  = canvas.offsetWidth  || 400;
-  const H = canvas.height = canvas.offsetHeight || 80;
-  const c = canvas.getContext('2d');
-  c.fillStyle = '#0d0d15';
-  c.fillRect(0, 0, W, H);
+  ['spectrumCanvas', 'spectrumCanvas2'].forEach(id => {
+    const cv = document.getElementById(id);
+    if (!cv) return;
+    const W = cv.width  = cv.offsetWidth  || 400;
+    const H = cv.height = cv.offsetHeight || 80;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#0d0d15';
+    c.fillRect(0, 0, W, H);
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2119,6 +2284,13 @@ function updateLUFS() {
     const pct = Math.max(0, Math.min(100, (integrated + 60) / 60 * 100));
     barEl.style.width = pct + '%';
   }
+  // Mirror to stem-tab panel
+  const smSt  = document.getElementById('sm-lufsST');
+  const smInt = document.getElementById('sm-lufsInt');
+  const smBar = document.getElementById('sm-lufsBar');
+  if (smSt)  { smSt.textContent  = st.toFixed(1);         smSt.classList.toggle('lit', st > -30); }
+  if (smInt) { smInt.textContent = integrated.toFixed(1); smInt.classList.toggle('lit', integrated > -30); }
+  if (smBar && barEl) smBar.style.width = barEl.style.width;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2778,6 +2950,8 @@ function buildDetailedSummary(elapsed) {
 function init() {
   loadState();
   initMasterSliders();
+  initMasterMirrors();
+  syncMasterMirrors();
   initPresets();
   initDropZone();
   initTransport();
@@ -2787,6 +2961,66 @@ function init() {
   document.getElementById('resetAllBtn').addEventListener('click', resetAll);
   updateStemUI();
   setStatus('Load stems to begin', false);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MASTER MIRROR (stem-tab copies of master controls share the same audio nodes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Push current masterState values into the sm-* mirror controls
+function syncMasterMirrors() {
+  MASTER_SLIDERS.forEach(({ id, val, key, fmt }) => {
+    const smEl  = document.getElementById('s' + id);
+    const smVal = document.getElementById('s' + val);
+    if (smEl)  { smEl.value = masterState[key]; fillSlider(smEl); }
+    if (smVal) smVal.textContent = fmt(masterState[key]);
+  });
+  const smLim = document.getElementById('sm-limiter');
+  if (smLim) smLim.classList.toggle('on', masterState.limiter);
+}
+
+// Wire sm-* inputs: update masterState, sync primary m-* controls, drive audio
+function initMasterMirrors() {
+  MASTER_SLIDERS.forEach(({ id, val, key, fmt }) => {
+    const smEl  = document.getElementById('s' + id);
+    const smVal = document.getElementById('s' + val);
+    if (!smEl) return;
+    smEl.value = masterState[key];
+    fillSlider(smEl);
+    if (smVal) smVal.textContent = fmt(masterState[key]);
+    smEl.addEventListener('input', () => {
+      masterState[key] = parseFloat(smEl.value);
+      if (smVal) smVal.textContent = fmt(smEl.value);
+      fillSlider(smEl);
+      // Keep primary m-* control in sync
+      const mEl  = document.getElementById(id);
+      const mVal = document.getElementById(val);
+      if (mEl) { mEl.value = masterState[key]; fillSlider(mEl); }
+      if (mVal) mVal.textContent = fmt(masterState[key]);
+      activePreset = null;
+      syncPresetBtns();
+      updateMasterBus();
+      saveState();
+    });
+  });
+
+  // Limiter mirror toggle
+  const smLim = document.getElementById('sm-limiter');
+  if (smLim) {
+    smLim.classList.toggle('on', masterState.limiter);
+    smLim.addEventListener('click', () => {
+      masterState.limiter = !masterState.limiter;
+      smLim.classList.toggle('on', masterState.limiter);
+      const mLim = document.getElementById('m-limiter');
+      if (mLim) mLim.classList.toggle('on', masterState.limiter);
+      activePreset = null; syncPresetBtns(); updateMasterBus(); saveState();
+    });
+  }
+
+  // Collapsible panel toggle
+  const toggle = document.getElementById('stemMasterToggle');
+  const panel  = document.getElementById('stemMasterPanel');
+  if (toggle && panel) toggle.addEventListener('click', () => panel.classList.toggle('open'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
