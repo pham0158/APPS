@@ -451,6 +451,205 @@
   /* Progress footer */
   .prog-footer { display:flex; justify-content:space-between; align-items:center; }
   .prog-time-rem { font-size:11px; color:var(--text-dim); font-variant-numeric:tabular-nums; }
+
+  /* ── Seekbar ─────────────────────────────────────────────────── */
+  .seekbar-container {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 12px 20px;
+  }
+  .seekbar-row { display:flex; align-items:center; gap:10px; }
+  .seekbar-time {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums; flex-shrink: 0; min-width: 36px;
+    line-height: 1;
+  }
+  .seekbar-time.right { text-align: right; }
+  .seekbar-track-wrap { position: relative; flex: 1; display: flex; align-items: center; }
+  input[type="range"].seekbar {
+    -webkit-appearance: none; width: 100%; height: 4px;
+    border-radius: 2px; background: var(--knob-track); outline: none;
+    cursor: pointer; touch-action: none; position: relative; z-index: 1;
+  }
+  input[type="range"].seekbar::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 8px var(--accent-glow);
+    cursor: pointer; transition: transform .1s, box-shadow .1s;
+  }
+  input[type="range"].seekbar::-webkit-slider-thumb:hover {
+    transform: scale(1.2); box-shadow: 0 0 14px var(--accent-glow);
+  }
+  input[type="range"].seekbar::-moz-range-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); border: none; cursor: pointer;
+  }
+  /* Shimmer overlay while rendering */
+  .seekbar-loading-bar {
+    position: absolute; inset: 0; border-radius: 2px; pointer-events: none;
+    z-index: 2; opacity: 0; transition: opacity .25s;
+    background: repeating-linear-gradient(
+      90deg,
+      rgba(108,99,255,.08) 0px, rgba(108,99,255,.25) 20px, rgba(108,99,255,.08) 40px
+    );
+    background-size: 80px 100%;
+    animation: seekbar-shimmer 1.2s linear infinite;
+  }
+  .seekbar-loading-bar.active { opacity: 1; }
+  @keyframes seekbar-shimmer { to { background-position: 80px 0; } }
+
+  /* stem-transport uses flex-column now */
+  .stem-transport {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .stem-transport-controls { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+
+  /* ── Section Reset Buttons ──────────────────────────────────── */
+  .reset-btn {
+    display:inline-flex; align-items:center; gap:4px;
+    background:none; border:1px solid transparent;
+    color:var(--text-dim); font-size:10px; font-weight:600;
+    padding:3px 8px; border-radius:4px; cursor:pointer;
+    letter-spacing:.3px; transition:all .15s; flex-shrink:0;
+  }
+  .reset-btn:hover { border-color:var(--border); color:var(--text-secondary); background:var(--bg-input); }
+  .stem-rst-btn {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:18px; height:18px; flex-shrink:0;
+    background:none; border:1px solid transparent;
+    color:var(--text-dim); font-size:11px;
+    border-radius:3px; cursor:pointer; transition:all .15s; padding:0;
+  }
+  .stem-rst-btn:hover { border-color:var(--border); color:var(--text-secondary); background:var(--bg-input); }
+  .panel-header { display:flex; align-items:center; margin-bottom:18px; }
+  .panel-header .panel-title { margin-bottom:0; flex:1; }
+  .mpanel-header { display:flex; align-items:center; margin-bottom:12px; }
+  .mpanel-header .mpanel-title { margin-bottom:0; flex:1; }
+
+  /* ── Inline Tooltips ────────────────────────────────────── */
+  .tip-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; border-radius: 50%;
+    font-size: 9px; font-style: normal; font-weight: 700;
+    color: var(--text-dim); background: var(--bg-input);
+    border: 1px solid var(--border); cursor: help;
+    vertical-align: middle; flex-shrink: 0;
+    transition: color .15s, border-color .15s;
+    user-select: none; line-height: 1;
+  }
+  .tip-icon:hover, .tip-icon.tip-active { color: var(--accent); border-color: var(--accent); }
+
+  #tipBubble {
+    position: fixed; z-index: 9999;
+    max-width: 260px; min-width: 160px;
+    background: #1a1a28; border: 1px solid var(--border-bright);
+    border-radius: 8px; padding: 9px 12px;
+    font-size: 11.5px; line-height: 1.6; color: var(--text-secondary);
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    pointer-events: none; opacity: 0;
+    transition: opacity .2s ease;
+    display: none;
+  }
+  #tipBubble.visible { opacity: 1; display: block; }
+
+  /* ── Help Button ────────────────────────────────────────── */
+  .help-btn {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text-secondary); font-size: 12px; font-weight: 600;
+    padding: 5px 12px; border-radius: 6px; cursor: pointer;
+    transition: all .15s; letter-spacing: .3px; flex-shrink: 0;
+  }
+  .help-btn:hover { border-color: var(--border-bright); color: var(--text-primary); background: var(--bg-card-hover); }
+
+  /* ── Help Panel ─────────────────────────────────────────── */
+  #helpPanel {
+    position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,.72); display: none;
+    align-items: flex-start; justify-content: center;
+    padding: 20px; overflow-y: auto;
+    backdrop-filter: blur(4px);
+  }
+  #helpPanel.open { display: flex; }
+  .help-modal {
+    background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); width: 100%; max-width: 780px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.7);
+    animation: help-in .22s ease;
+    margin: auto;
+  }
+  @keyframes help-in { from { opacity:0; transform: translateY(-12px); } to { opacity:1; transform:none; } }
+  .help-modal-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--bg-panel);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0; z-index: 1;
+  }
+  .help-modal-title { font-size: 15px; font-weight: 700; color: var(--text-primary); flex: 1; }
+  .help-search {
+    flex: 1; max-width: 260px;
+    background: var(--bg-input); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px; font-size: 12px;
+    color: var(--text-primary); outline: none;
+    transition: border-color .15s;
+  }
+  .help-search:focus { border-color: var(--accent); }
+  .help-search::placeholder { color: var(--text-dim); }
+  .help-close {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: none; border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 15px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .help-close:hover { border-color: var(--accent-warn); color: var(--accent-warn); }
+  .help-body { padding: 24px; display: flex; flex-direction: column; gap: 28px; }
+  .help-section-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .help-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+  .help-steps { list-style: none; counter-reset: step; display: flex; flex-direction: column; gap: 8px; }
+  .help-steps li {
+    counter-increment: step; display: flex; gap: 12px; align-items: flex-start;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: var(--text-secondary);
+  }
+  .help-steps li::before {
+    content: counter(step); flex-shrink: 0;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .help-plain { font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
+  .help-control-list { display: flex; flex-direction: column; gap: 6px; }
+  .help-control-item {
+    display: flex; flex-direction: column; gap: 3px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 10px 14px;
+    transition: border-color .15s;
+  }
+  .help-control-item[hidden] { display: none; }
+  .help-control-item:hover { border-color: var(--border-bright); }
+  .help-ctrl-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .help-ctrl-desc { font-size: 11.5px; color: var(--text-secondary); line-height: 1.5; }
+  .help-ctrl-meta { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+  .help-ctrl-tag {
+    font-size: 10px; font-weight: 600; letter-spacing: .4px;
+    padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .help-ctrl-tag.tag-default { border-color: var(--accent-2); color: var(--accent-2); background: rgba(0,212,170,.06); }
+  .help-lufs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .help-lufs-table th { text-align: left; color: var(--text-dim); font-size: 10px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; padding: 0 10px 8px 0; }
+  .help-lufs-table td { padding: 8px 10px 8px 0; color: var(--text-secondary); border-top: 1px solid var(--border); vertical-align: middle; }
+  .help-lufs-table td:first-child { color: var(--text-primary); font-weight: 600; }
+  .help-lufs-table .lufs-val { color: var(--accent-2); font-weight: 700; font-variant-numeric: tabular-nums; }
+  @media(max-width:600px) {
+    #helpPanel { padding: 0; align-items: flex-start; }
+    .help-modal { border-radius: 0; max-width: 100%; min-height: 100vh; }
+  }
 </style>
 </head>
 <body>
@@ -472,6 +671,7 @@
       <span id="statusText">Drop a file to begin</span>
     </div>
     <button id="resetAllBtn" title="Reset all settings to defaults" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-dim);font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;transition:all .15s;letter-spacing:.3px;">↺ Reset</button>
+    <button id="helpBtn" class="help-btn" title="Help &amp; Guide (H)">? Help</button>
     <div class="version-badge">QA v9</div>
   </div>
 </header>
@@ -511,13 +711,16 @@
 
   <!-- Presets -->
   <div>
-    <div class="section-label">Presets</div>
+    <div style="display:flex;align-items:center;margin-bottom:10px;">
+      <div class="section-label" style="margin-bottom:0;flex:1;">Presets</div>
+      <button class="reset-btn" id="clearPresetBtn" title="Deselect active preset (sliders unchanged)">✕ Clear Preset</button>
+    </div>
     <div class="presets-row" id="presetsRow">
-      <button class="preset-btn" data-preset="vocalBoost"><span class="preset-icon">⚡</span>Vocal Boost</button>
-      <button class="preset-btn" data-preset="hiFiMaster"><span class="preset-icon">✨</span>Hi-Fi Master</button>
-      <button class="preset-btn" data-preset="warmth"><span class="preset-icon">🎸</span>Warmth</button>
-      <button class="preset-btn" data-preset="broadcast"><span class="preset-icon">📻</span>Broadcast</button>
-      <button class="preset-btn" data-preset="maxClarity"><span class="preset-icon">💎</span>Max Clarity</button>
+      <button class="preset-btn" data-preset="vocalBoost" data-tip="Strong de-mud cut, presence boost, tight compression for voice clarity. Mono-safe processing. Great starting point for vocals and podcasts."><span class="preset-icon">⚡</span>Vocal Boost</button>
+      <button class="preset-btn" data-preset="hiFiMaster" data-tip="Targets -14 LUFS integrated loudness, the standard for Spotify and Apple Music. Balanced EQ, gentle compression, clean and transparent."><span class="preset-icon">✨</span>Hi-Fi Master</button>
+      <button class="preset-btn" data-preset="warmth" data-tip="Gentle compression, low-shelf warmth, subtle saturation character. Sounds like vintage tape mastering."><span class="preset-icon">🎸</span>Warmth</button>
+      <button class="preset-btn" data-preset="broadcast" data-tip="Heavy low end, wide stereo image, punchy limiting. Targets -8 LUFS for loud club or broadcast playback."><span class="preset-icon">📻</span>Broadcast</button>
+      <button class="preset-btn" data-preset="maxClarity" data-tip="Minimal processing philosophy. Wide stereo, clean highs, light compression. Maximum transparency — let the music speak."><span class="preset-icon">💎</span>Max Clarity</button>
     </div>
   </div>
 
@@ -525,39 +728,42 @@
   <div class="controls-grid">
     <!-- EQ -->
     <div class="panel">
-      <div class="panel-title">EQ</div>
+      <div class="panel-header">
+        <div class="panel-title">EQ</div>
+        <button class="reset-btn" id="resetMasterEQ" title="Reset EQ to defaults">↺ Reset</button>
+      </div>
       <div class="slider-row">
-        <span class="slider-label">Sub Bass</span>
+        <span class="slider-label">Sub Bass <i class="tip-icon" data-tip="Controls the deep rumble and sub-bass frequencies. Boost for more power in kick drums and bass lines. Cut if the track sounds muddy on small speakers.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-sub" min="-12" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-sub">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Bass</span>
+        <span class="slider-label">Bass <i class="tip-icon" data-tip="Controls warmth and body in the low end. Boost for fullness, cut if the mix sounds boomy or unclear.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-bass" min="-12" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-bass">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Midrange</span>
+        <span class="slider-label">Midrange <i class="tip-icon" data-tip="The presence of most instruments and vocals lives here. Cut slightly for a more modern scooped sound, boost to bring vocals forward.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-mid" min="-12" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-mid">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Highs</span>
+        <span class="slider-label">Highs <i class="tip-icon" data-tip="Controls brightness and definition. Boost to add clarity and detail, cut to reduce harshness or sibilance.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-highs" min="-12" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-highs">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Presence</span>
+        <span class="slider-label">Presence <i class="tip-icon" data-tip="The key frequency range for vocal intelligibility and guitar bite. Boosting here makes vocals cut through the mix.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-presence" min="0" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-presence">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Air</span>
+        <span class="slider-label">Air <i class="tip-icon" data-tip="Adds sparkle and openness to the top end. A gentle boost here makes recordings sound more professional and airy.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-air" min="0" max="10" step="0.5" value="0"></div>
         <span class="slider-val" id="val-eq-air">0 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">De-Mud</span>
+        <span class="slider-label">De-Mud <i class="tip-icon" data-tip="Cuts the muddy buildup that clouds mixes. Very effective for cleaning up vocals, acoustic guitars, and full mixes that sound congested.">i</i></span>
         <div class="slider-wrap"><input type="range" id="eq-demud" min="0" max="100" step="1" value="0"></div>
         <span class="slider-val" id="val-eq-demud">0%</span>
       </div>
@@ -565,24 +771,27 @@
 
     <!-- Compression -->
     <div class="panel">
-      <div class="panel-title">Compression</div>
+      <div class="panel-header">
+        <div class="panel-title">Compression</div>
+        <button class="reset-btn" id="resetMasterComp" title="Reset Compression to defaults">↺ Reset</button>
+      </div>
       <div class="slider-row">
-        <span class="slider-label">Threshold</span>
+        <span class="slider-label">Threshold <i class="tip-icon" data-tip="Sets the volume level at which compression kicks in. Signals louder than this get compressed. Lower = more compression.">i</i></span>
         <div class="slider-wrap"><input type="range" id="comp-threshold" min="-60" max="0" step="1" value="-18"></div>
         <span class="slider-val" id="val-comp-threshold">-18 dB</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Ratio</span>
+        <span class="slider-label">Ratio <i class="tip-icon" data-tip="How much compression is applied once the signal crosses the threshold. 4:1 means for every 4dB over the threshold, only 1dB comes through.">i</i></span>
         <div class="slider-wrap"><input type="range" id="comp-ratio" min="1" max="20" step="0.5" value="4"></div>
         <span class="slider-val" id="val-comp-ratio">4:1</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Attack</span>
+        <span class="slider-label">Attack <i class="tip-icon" data-tip="How quickly compression kicks in after the signal crosses the threshold. Faster = tighter sound. Slower = more punch and transient preserved.">i</i></span>
         <div class="slider-wrap"><input type="range" id="comp-attack" min="0.1" max="200" step="0.1" value="10"></div>
         <span class="slider-val" id="val-comp-attack">10 ms</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Release</span>
+        <span class="slider-label">Release <i class="tip-icon" data-tip="How quickly compression lets go after the signal drops below the threshold. Shorter = snappier, longer = smoother.">i</i></span>
         <div class="slider-wrap"><input type="range" id="comp-release" min="10" max="1000" step="5" value="100"></div>
         <span class="slider-val" id="val-comp-release">100 ms</span>
       </div>
@@ -590,14 +799,17 @@
 
     <!-- Stereo & Output -->
     <div class="panel">
-      <div class="panel-title">Stereo & Output</div>
+      <div class="panel-header">
+        <div class="panel-title">Stereo & Output</div>
+        <button class="reset-btn" id="resetMasterOutput" title="Reset Stereo & Output to defaults">↺ Reset</button>
+      </div>
       <div class="slider-row">
-        <span class="slider-label">St. Width</span>
+        <span class="slider-label">St. Width <i class="tip-icon" data-tip="Expands or narrows the stereo image using mid/side processing. 100% = original width. 150%+ = wider, more immersive. Keep above 80% to stay mono-compatible.">i</i></span>
         <div class="slider-wrap"><input type="range" id="stereo-width" min="0" max="200" step="1" value="100"></div>
         <span class="slider-val" id="val-stereo-width">100%</span>
       </div>
       <div class="slider-row">
-        <span class="slider-label">Output Gain</span>
+        <span class="slider-label">Output Gain <i class="tip-icon" data-tip="The final volume level of the mastered signal before the limiter. Use this to hit a target loudness without clipping.">i</i></span>
         <div class="slider-wrap"><input type="range" id="output-gain" min="-12" max="12" step="0.5" value="0"></div>
         <span class="slider-val" id="val-output-gain">0 dB</span>
       </div>
@@ -609,27 +821,30 @@
       <div class="toggle-item" id="toggle-denoise" data-toggle="denoise" role="switch" tabindex="0" aria-checked="false">
         <span class="toggle-icon">✨</span>
         <div class="toggle-info">
-          <div class="toggle-name">AI Denoise</div>
+          <div class="toggle-name">AI Denoise ✨ <i class="tip-icon" data-tip="Uses RNNoise neural network to remove background hiss, hum, and noise from your audio. Works best on vocals and voice recordings. Processing happens entirely in your browser — nothing is uploaded.">i</i></div>
           <div class="toggle-desc" id="denoiseDesc">RNNoise neural suppression</div>
         </div>
         <span class="rnnoise-badge badge-loading" id="rnnoiseStatus" style="display:none"><span class="rn-spin">⟳</span> Loading</span>
+        <button class="reset-btn" id="resetDenoise" title="Reset AI Denoise (toggle off)" style="font-size:11px;padding:2px 6px;">↺</button>
         <div class="toggle-switch"></div>
       </div>
       <div class="toggle-hint" id="denoiseHint">Works best on vocals and voice recordings</div>
       <div class="toggle-item" id="toggle-limiter" data-toggle="limiter" role="switch" tabindex="0" aria-checked="false">
         <span class="toggle-icon">🔒</span>
         <div class="toggle-info">
-          <div class="toggle-name">Limiter</div>
+          <div class="toggle-name">Limiter <i class="tip-icon" data-tip="Prevents your audio from ever exceeding -1 dBFS (digital ceiling). Acts as a safety net to avoid harsh digital clipping on export.">i</i></div>
           <div class="toggle-desc">True peak limiting at -1 dBTP</div>
         </div>
+        <button class="reset-btn" id="resetLimiter" title="Reset Limiter (toggle on)" style="font-size:11px;padding:2px 6px;">↺</button>
         <div class="toggle-switch"></div>
       </div>
       <div class="toggle-item" id="toggle-gate" data-toggle="gate" role="switch" tabindex="0" aria-checked="false">
         <span class="toggle-icon">🚪</span>
         <div class="toggle-info">
-          <div class="toggle-name">Noise Gate</div>
+          <div class="toggle-name">Noise Gate <i class="tip-icon" data-tip="Automatically silences audio that falls below a volume threshold. Useful for cutting out background noise between sung phrases or spoken words.">i</i></div>
           <div class="toggle-desc">Silence background noise floor</div>
         </div>
+        <button class="reset-btn" id="resetGate" title="Reset Noise Gate (toggle off)" style="font-size:11px;padding:2px 6px;">↺</button>
         <div class="toggle-switch"></div>
       </div>
     </div>
@@ -729,13 +944,25 @@
       <span class="play-btn-icon">▶</span>
       <span class="play-btn-text">Preview</span>
     </button>
-    <button class="btn btn-secondary" id="abBtn" disabled>
+    <button class="btn btn-secondary" id="abBtn" disabled data-tip="Instantly flip between your original unprocessed audio (A) and the mastered version (B) during playback. Use this to judge if your processing is actually improving the sound.">
       <span class="btn-icon">🔀</span>A/B Compare
     </button>
     <div class="divider"></div>
     <div class="download-group">
       <button class="btn-dl" id="dl16Btn" disabled><span>⬇</span> 16-bit WAV</button>
       <button class="btn-dl" id="dl24Btn" disabled><span>⬇</span> 24-bit WAV</button>
+    </div>
+  </div>
+
+  <!-- Master Seekbar -->
+  <div class="seekbar-container" id="masterSeekContainer" style="display:none">
+    <div class="seekbar-row">
+      <span class="seekbar-time" id="masterSeekCur">0:00</span>
+      <div class="seekbar-track-wrap">
+        <div class="seekbar-loading-bar" id="masterSeekLoading"></div>
+        <input type="range" class="seekbar" id="masterSeek" min="0" max="1000" step="1" value="0">
+      </div>
+      <span class="seekbar-time right" id="masterSeekDur">0:00</span>
     </div>
   </div>
 
@@ -749,6 +976,7 @@
     <span class="section-title">🎚️ Stem Tracks</span>
     <div style="display:flex;gap:8px;align-items:center;">
       <span id="stemCount" style="font-size:11px;color:var(--text-dim)">0 / 8 stems</span>
+      <button class="reset-btn" id="resetAllStemsBtn" style="display:none" title="Reset every stem to defaults">↺ Reset All Stems</button>
       <button class="btn btn-secondary btn-sm" id="clearAllBtn" style="display:none">Clear All</button>
     </div>
   </div>
@@ -782,21 +1010,32 @@
 
 <!-- ══ Stem Transport ══ -->
 <div class="stem-transport" id="stemTransport" style="display:none">
-  <button class="stem-play-btn" id="stemPlayBtn" disabled>▶</button>
-  <div style="flex:1;min-width:0;">
-    <div class="stem-transport-time" id="stemTransportTime">0:00</div>
-    <div class="stem-transport-sub" id="stemTransportSub">0:00 / 0:00</div>
-  </div>
-  <button class="btn btn-secondary btn-sm" id="stemAbBtn" disabled>🔀 A/B</button>
-  <div class="exp-wrap">
-    <button class="btn btn-secondary btn-sm" id="stemExportBtn" disabled>⬇ Export ▾</button>
-    <div class="exp-menu" id="stemExpMenu">
-      <div class="exp-item" id="stemExp24">⬇ Export Mix — 24-bit WAV</div>
-      <div class="exp-item" id="stemExp16">⬇ Export Mix — 16-bit WAV</div>
-      <div class="exp-sep"></div>
-      <div class="exp-item" id="stemExpStems24">📦 Stems ZIP — 24-bit WAV</div>
-      <div class="exp-item" id="stemExpStems16">📦 Stems ZIP — 16-bit WAV</div>
+  <div class="stem-transport-controls">
+    <button class="stem-play-btn" id="stemPlayBtn" disabled>▶</button>
+    <div style="flex:1;min-width:0;">
+      <div class="stem-transport-time" id="stemTransportTime">0:00</div>
+      <div class="stem-transport-sub" id="stemTransportSub">0:00 / 0:00</div>
     </div>
+    <button class="btn btn-secondary btn-sm" id="stemAbBtn" disabled>🔀 A/B</button>
+    <div class="exp-wrap">
+      <button class="btn btn-secondary btn-sm" id="stemExportBtn" disabled>⬇ Export ▾</button>
+      <div class="exp-menu" id="stemExpMenu">
+        <div class="exp-item" id="stemExp24">⬇ Export Mix — 24-bit WAV</div>
+        <div class="exp-item" id="stemExp16">⬇ Export Mix — 16-bit WAV</div>
+        <div class="exp-sep"></div>
+        <div class="exp-item" id="stemExpStems24">📦 Stems ZIP — 24-bit WAV</div>
+        <div class="exp-item" id="stemExpStems16">📦 Stems ZIP — 16-bit WAV</div>
+      </div>
+    </div>
+  </div>
+  <!-- Stem Seekbar -->
+  <div class="seekbar-row" id="stemSeekRow">
+    <span class="seekbar-time" id="stemSeekCur">0:00</span>
+    <div class="seekbar-track-wrap">
+      <div class="seekbar-loading-bar" id="stemSeekLoading"></div>
+      <input type="range" class="seekbar" id="stemSeek" min="0" max="1000" step="1" value="0">
+    </div>
+    <span class="seekbar-time right" id="stemSeekDur">0:00</span>
   </div>
 </div>
 
@@ -852,7 +1091,10 @@
 
       <!-- EQ (7-band) -->
       <div class="mpanel">
-        <div class="mpanel-title">EQ</div>
+        <div class="mpanel-header">
+          <div class="mpanel-title">EQ</div>
+          <button class="reset-btn" id="resetSmtEQ" title="Reset EQ to defaults">↺ Reset</button>
+        </div>
         <div class="sl-row">
           <span class="sl-lbl">Sub Bass</span>
           <div class="sl-wrap"><input type="range" id="smt-sub" min="-12" max="12" step="0.5" value="0"></div>
@@ -892,7 +1134,10 @@
 
       <!-- Compression -->
       <div class="mpanel">
-        <div class="mpanel-title">Compression</div>
+        <div class="mpanel-header">
+          <div class="mpanel-title">Compression</div>
+          <button class="reset-btn" id="resetSmtComp" title="Reset Compression to defaults">↺ Reset</button>
+        </div>
         <div class="sl-row">
           <span class="sl-lbl">Threshold</span>
           <div class="sl-wrap"><input type="range" id="smt-thr" min="-60" max="0" step="1" value="-18"></div>
@@ -917,7 +1162,10 @@
 
       <!-- Output -->
       <div class="mpanel">
-        <div class="mpanel-title">Output</div>
+        <div class="mpanel-header">
+          <div class="mpanel-title">Output</div>
+          <button class="reset-btn" id="resetSmtOutput" title="Reset Stereo Width, Gain & Limiter to defaults">↺ Reset</button>
+        </div>
         <div class="sl-row">
           <span class="sl-lbl">St. Width</span>
           <div class="sl-wrap"><input type="range" id="smt-width" min="0" max="200" step="1" value="100"></div>
@@ -1019,6 +1267,7 @@
     <span class="kbd-hint"><span class="kbd">1</span> / <span class="kbd">2</span> Switch Tabs</span>
     <span class="kbd-hint"><span class="kbd">M</span> Mute Stem</span>
     <span class="kbd-hint"><span class="kbd">S</span> Solo Stem</span>
+    <span class="kbd-hint"><span class="kbd">H</span> Help</span>
   </div>
 
 </main>
@@ -1098,6 +1347,9 @@ let playStartTime = 0;
 let playOffset = 0;
 let specRafId = null;
 let lufsRafId = null;
+let masterSeekRafId = null;
+let masterSeekDragging = false;
+let masterSeekWasPlaying = false;
 let peakDecayL = 0, peakDecayR = 0;
 let liveEqNodes = null; // EQ nodes wired into live playback chain
 
@@ -1262,6 +1514,22 @@ function fmtDuration(s) {
   return `${m}:${sec.toString().padStart(2,'0')}`;
 }
 
+// Hour-aware time formatter used by seekbars
+function fmtTime(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  sec = Math.floor(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  return `${m}:${s.toString().padStart(2,'0')}`;
+}
+
+function setSeekbarFill(el, pct) {
+  // pct is 0–100
+  el.style.background = `linear-gradient(to right, var(--accent) ${pct}%, var(--knob-track) ${pct}%)`;
+}
+
 async function handleFile(file) {
   if (!file) return;
   const ext = file.name.split('.').pop().toLowerCase();
@@ -1296,6 +1564,16 @@ async function handleFile(file) {
   document.getElementById('waveAfterMsg').textContent = 'Enhance to preview';
   document.getElementById('waveAfterMsg').style.display = '';
   document.getElementById('waveBeforeMsg').style.display = 'none';
+
+  // Show and reset master seekbar
+  const msCont = document.getElementById('masterSeekContainer');
+  const msDur  = document.getElementById('masterSeekDur');
+  const msCur  = document.getElementById('masterSeekCur');
+  const msSk   = document.getElementById('masterSeek');
+  if (msCont) msCont.style.display = '';
+  if (msDur)  msDur.textContent = fmtTime(originalBuffer.duration);
+  if (msCur)  msCur.textContent = fmtTime(0);
+  if (msSk)   { msSk.value = 0; setSeekbarFill(msSk, 0); }
 
   drawRealWaveform('waveformBefore', originalBuffer, true);
   clearCanvas('waveformAfter');
@@ -1335,6 +1613,13 @@ function clearFile() {
   clearCanvas('waveformBefore'); clearCanvas('waveformAfter');
   drawIdleSpectrum();
   resetMeters();
+  // Hide master seekbar
+  const msCont = document.getElementById('masterSeekContainer');
+  const msSk   = document.getElementById('masterSeek');
+  const msCur  = document.getElementById('masterSeekCur');
+  if (msCont) msCont.style.display = 'none';
+  if (msSk)   { msSk.value = 0; setSeekbarFill(msSk, 0); }
+  if (msCur)  msCur.textContent = fmtTime(0);
   updateActionBar();
   setStatus('Drop a file to begin', false);
 }
@@ -1879,6 +2164,7 @@ async function runMastering() {
   showProgress(0, 'Initializing mastering chain…');
   setStatus('Mastering in progress…', true, true);
   updateActionBar(true);
+  document.getElementById('masterSeekLoading')?.classList.add('active');
 
   // ── Phase 3: RNNoise pre-processing ──────────────────────────────────────
   let preMasterBuffer = originalBuffer;
@@ -1979,6 +2265,7 @@ async function runMastering() {
 
   await new Promise(r => setTimeout(r, 250));
   hideProgress();
+  document.getElementById('masterSeekLoading')?.classList.remove('active');
 
   state.hasEnhanced = true;
   drawRealWaveform('waveformAfter', masteredBuffer, false);
@@ -1997,6 +2284,7 @@ async function runMastering() {
 function stopPlayback() {
   if (specRafId) { cancelAnimationFrame(specRafId); specRafId = null; }
   if (lufsRafId) { cancelAnimationFrame(lufsRafId); lufsRafId = null; }
+  if (masterSeekRafId) { cancelAnimationFrame(masterSeekRafId); masterSeekRafId = null; }
   if (playSource) { try { playSource.stop(); } catch(e){} playSource = null; }
   playAnalyser = null;
   isPlaying = false;
@@ -2004,6 +2292,15 @@ function stopPlayback() {
   liveEqNodes = null;
   const btn = document.getElementById('playBtn');
   if (btn) { btn.querySelector('.play-btn-icon').textContent='▶'; btn.querySelector('.play-btn-text').textContent='Preview'; }
+  // Update seekbar to paused position
+  const buf = state.abMode ? originalBuffer : (masteredBuffer || originalBuffer);
+  if (buf && isFinite(playOffset)) {
+    const pct = Math.max(0, Math.min(1, playOffset / buf.duration)) * 100;
+    const sk = document.getElementById('masterSeek');
+    if (sk) { sk.value = Math.round(pct * 10); setSeekbarFill(sk, pct); }
+    const cur = document.getElementById('masterSeekCur');
+    if (cur) cur.textContent = fmtTime(playOffset);
+  }
   drawIdleSpectrum();
 }
 
@@ -2082,6 +2379,7 @@ function startPlayback() {
   animateSpectrum(playAnalyser);
   animatePeaks(analyserL, analyserR);
   animateLUFS(playAnalyser);
+  animateMasterSeekbar();
 }
 
 function togglePlayback() {
@@ -2218,6 +2516,64 @@ function animateLUFS(analyserNode) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MASTER SEEKBAR
+// ─────────────────────────────────────────────────────────────────────────────
+function animateMasterSeekbar() {
+  if (!isPlaying || !audioCtx) return;
+  masterSeekRafId = requestAnimationFrame(animateMasterSeekbar);
+  if (masterSeekDragging) return;
+  const elapsed = audioCtx.currentTime - playStartTime;
+  const buf = state.abMode ? originalBuffer : (masteredBuffer || originalBuffer);
+  if (!buf) return;
+  const pct = Math.max(0, Math.min(1, elapsed / buf.duration)) * 100;
+  const sk = document.getElementById('masterSeek');
+  if (sk) { sk.value = Math.round(pct * 10); setSeekbarFill(sk, pct); }
+  const cur = document.getElementById('masterSeekCur');
+  if (cur) cur.textContent = fmtTime(elapsed);
+}
+
+function initMasterSeekbar() {
+  const sk  = document.getElementById('masterSeek');
+  const cur = document.getElementById('masterSeekCur');
+  if (!sk) return;
+
+  // Pointer down → capture drag, pause if playing
+  sk.addEventListener('pointerdown', () => {
+    masterSeekDragging = true;
+    masterSeekWasPlaying = isPlaying;
+    if (isPlaying) {
+      playOffset = audioCtx.currentTime - playStartTime;
+      stopPlayback();
+    }
+  });
+
+  // Dragging → scrub position + update display
+  sk.addEventListener('input', () => {
+    const buf = state.abMode ? originalBuffer : (masteredBuffer || originalBuffer);
+    if (!buf) return;
+    const pct = sk.value / 1000;
+    playOffset = pct * buf.duration;
+    if (cur) cur.textContent = fmtTime(playOffset);
+    setSeekbarFill(sk, pct * 100);
+  });
+
+  // Pointer up → resume if was playing
+  sk.addEventListener('pointerup', () => {
+    masterSeekDragging = false;
+    if (masterSeekWasPlaying) startPlayback();
+    masterSeekWasPlaying = false;
+  });
+
+  // Touch devices: treat touchend same as pointerup
+  sk.addEventListener('touchend', () => {
+    if (!masterSeekDragging) return;
+    masterSeekDragging = false;
+    if (masterSeekWasPlaying) startPlayback();
+    masterSeekWasPlaying = false;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ACTION BAR
 // ─────────────────────────────────────────────────────────────────────────────
 function updateActionBar(processing = false) {
@@ -2286,8 +2642,18 @@ function setStatus(msg, ready=true, processing=false) {
 // ─────────────────────────────────────────────────────────────────────────────
 function initKeyboard() {
   document.addEventListener('keydown', e => {
+    // Escape always closes help panel first
+    if (e.key === 'Escape') { closeHelp(); return; }
+
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     const stemTabActive = document.getElementById('tab-stem')?.style.display !== 'none';
+
+    // H = open/close help panel
+    if (e.key === 'h' || e.key === 'H') {
+      const panel = document.getElementById('helpPanel');
+      if (panel?.classList.contains('open')) closeHelp(); else openHelp();
+      return;
+    }
 
     // Tab switching: 1 = Master, 2 = Stem Mixer
     if (e.key === '1') { showTab('tab-master'); return; }
@@ -2363,6 +2729,216 @@ function resetAll() {
   setStatus('Settings reset to defaults', true);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// SECTION RESET HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function showResetConfirm(btn) {
+  const orig = btn.textContent;
+  const origColor = btn.style.color;
+  const origBorder = btn.style.borderColor;
+  btn.textContent = '✓ Reset';
+  btn.style.color = 'var(--accent-2)';
+  btn.style.borderColor = 'var(--accent-2)';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.color = origColor;
+    btn.style.borderColor = origBorder;
+  }, 1500);
+}
+
+function resetMasterSliders(ids, btn) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = el.defaultValue;
+    state.sliders[id] = +el.value;
+    updateSliderDisplay(id, el.value);
+    updateLiveEQ(id, el.value);
+  });
+  state.activePreset = null;
+  syncPresetBtns();
+  saveState();
+  if (btn) showResetConfirm(btn);
+}
+
+function resetMasterToggle(id, defaultOn, btn) {
+  const desired = !!defaultOn;
+  state.toggles[id] = desired;
+  const el = document.getElementById(`toggle-${id}`);
+  if (el) {
+    el.classList.toggle('on', desired);
+    el.setAttribute('aria-checked', String(desired));
+  }
+  if (id === 'limiter') {
+    const smt = document.getElementById('smt-limiter');
+    if (smt) smt.classList.toggle('on', desired);
+    updateStemMasterBus();
+  }
+  state.activePreset = null;
+  syncPresetBtns();
+  saveState();
+  if (btn) showResetConfirm(btn);
+}
+
+function resetStemSection(s, el, section, btn) {
+  if (section === 'mix') {
+    s.volume = 100; s.pan = 0;
+    const volSl = el.querySelector('[data-p="volume"]');
+    const panSl = el.querySelector('[data-p="pan"]');
+    if (volSl) { volSl.value = 100; fillStemSlider(volSl, s.color); }
+    if (panSl) { panSl.value = 0;   fillStemSlider(panSl, s.color); }
+    const volV = el.querySelector('[data-v="volume"]');
+    const panV = el.querySelector('[data-v="pan"]');
+    if (volV) volV.textContent = sfmtVol(100);
+    if (panV) panV.textContent = sfmtPan(0);
+  } else if (section === 'eq') {
+    s.eq = { hpf: 80, bass: 0, pres: 0, air: 0 };
+    [['eq.hpf', 80], ['eq.bass', 0], ['eq.pres', 0], ['eq.air', 0]].forEach(([p, def]) => {
+      el.querySelectorAll(`[data-p="${p}"]`).forEach(sl => { sl.value = def; fillStemSlider(sl, s.color); });
+      el.querySelectorAll(`[data-v="${p}"]`).forEach(vl => { vl.textContent = stemFormatParam(p, def); });
+    });
+  } else if (section === 'comp') {
+    s.comp = { thr: -18, rat: 4, atk: 10, rel: 100 };
+    [['comp.thr', -18], ['comp.rat', 4], ['comp.atk', 10], ['comp.rel', 100]].forEach(([p, def]) => {
+      el.querySelectorAll(`[data-p="${p}"]`).forEach(sl => { sl.value = def; fillStemSlider(sl, s.color); });
+      el.querySelectorAll(`[data-v="${p}"]`).forEach(vl => { vl.textContent = stemFormatParam(p, def); });
+    });
+  } else if (section === 'reverb') {
+    s.reverb = 0;
+    const sl = el.querySelector('[data-p="reverb"]');
+    const vl = el.querySelector('[data-v="reverb"]');
+    if (sl) { sl.value = 0; fillStemSlider(sl, s.color); }
+    if (vl) vl.textContent = '0%';
+  } else if (section === 'width') {
+    s.width = 100;
+    const sl = el.querySelector('[data-p="width"]');
+    const vl = el.querySelector('[data-v="width"]');
+    if (sl) { sl.value = 100; fillStemSlider(sl, s.color); }
+    if (vl) vl.textContent = sfmtPct(100);
+  } else if (section === 'denoise') {
+    s.denoise = false;
+    el.querySelector('[data-a="toggleDenoise"]')?.classList.remove('on');
+  } else if (section === 'humanize') {
+    s.humanize = false;
+    s.humanizeIntensity = 0;
+    el.querySelector('[data-a="toggleHumanize"]')?.classList.remove('on');
+    const sl = el.querySelector('[data-p="humanizeIntensity"]');
+    const vl = el.querySelector('[data-v="humanizeIntensity"]');
+    const humWrap = el.querySelector(`#hum-sl-${s.id}`);
+    if (sl) { sl.value = 0; fillStemSlider(sl, s.color); }
+    if (vl) vl.textContent = '0%';
+    if (humWrap) { humWrap.style.opacity = '0.4'; humWrap.style.pointerEvents = 'none'; }
+  }
+  updateStemNodes(s);
+  if (btn) showResetConfirm(btn);
+}
+
+function resetAllStems(btn) {
+  stems.forEach(s => {
+    s.volume = 100; s.pan = 0;
+    s.eq = { hpf: 80, bass: 0, pres: 0, air: 0 };
+    s.comp = { thr: -18, rat: 4, atk: 10, rel: 100 };
+    s.reverb = 0; s.width = 100;
+    s.denoise = false; s.humanize = false; s.humanizeIntensity = 0;
+    const el = document.querySelector(`[data-stem-id="${s.id}"]`);
+    if (!el) return;
+    [['volume',100],['pan',0],['eq.hpf',80],['eq.bass',0],['eq.pres',0],['eq.air',0],
+     ['comp.thr',-18],['comp.rat',4],['comp.atk',10],['comp.rel',100],
+     ['reverb',0],['width',100],['humanizeIntensity',0]].forEach(([p, v]) => {
+      el.querySelectorAll(`[data-p="${p}"]`).forEach(sl => { sl.value = v; fillStemSlider(sl, s.color); });
+      el.querySelectorAll(`[data-v="${p}"]`).forEach(vl => { vl.textContent = stemFormatParam(p, v); });
+    });
+    el.querySelector('[data-a="toggleDenoise"]')?.classList.remove('on');
+    el.querySelector('[data-a="toggleHumanize"]')?.classList.remove('on');
+    const humWrap = el.querySelector(`#hum-sl-${s.id}`);
+    if (humWrap) { humWrap.style.opacity = '0.4'; humWrap.style.pointerEvents = 'none'; }
+    updateStemNodes(s);
+  });
+  if (btn) showResetConfirm(btn);
+}
+
+function initResetButtons() {
+  // Master EQ
+  const rEQ = document.getElementById('resetMasterEQ');
+  if (rEQ) rEQ.addEventListener('click', () =>
+    resetMasterSliders(['eq-sub','eq-bass','eq-mid','eq-highs','eq-presence','eq-air','eq-demud'], rEQ)
+  );
+
+  // Master Compression
+  const rComp = document.getElementById('resetMasterComp');
+  if (rComp) rComp.addEventListener('click', () =>
+    resetMasterSliders(['comp-threshold','comp-ratio','comp-attack','comp-release'], rComp)
+  );
+
+  // Master Stereo & Output
+  const rOutput = document.getElementById('resetMasterOutput');
+  if (rOutput) rOutput.addEventListener('click', () =>
+    resetMasterSliders(['stereo-width','output-gain'], rOutput)
+  );
+
+  // Master AI Denoise
+  const rDenoise = document.getElementById('resetDenoise');
+  if (rDenoise) rDenoise.addEventListener('click', e => {
+    e.stopPropagation();
+    resetMasterToggle('denoise', false, rDenoise);
+  });
+
+  // Master Noise Gate
+  const rGate = document.getElementById('resetGate');
+  if (rGate) rGate.addEventListener('click', e => {
+    e.stopPropagation();
+    resetMasterToggle('gate', false, rGate);
+  });
+
+  // Master Limiter (default ON)
+  const rLimiter = document.getElementById('resetLimiter');
+  if (rLimiter) rLimiter.addEventListener('click', e => {
+    e.stopPropagation();
+    resetMasterToggle('limiter', true, rLimiter);
+  });
+
+  // Clear Preset
+  const clearPreset = document.getElementById('clearPresetBtn');
+  if (clearPreset) clearPreset.addEventListener('click', () => {
+    state.activePreset = null;
+    syncPresetBtns();
+    saveState();
+    showResetConfirm(clearPreset);
+  });
+
+  // Reset All Stems
+  const rAllStems = document.getElementById('resetAllStemsBtn');
+  if (rAllStems) rAllStems.addEventListener('click', () => resetAllStems(rAllStems));
+
+  // Master This Mix — EQ (resets master sliders, syncs SMT)
+  const rSmtEQ = document.getElementById('resetSmtEQ');
+  if (rSmtEQ) rSmtEQ.addEventListener('click', () => {
+    resetMasterSliders(['eq-sub','eq-bass','eq-mid','eq-highs','eq-presence','eq-air','eq-demud'], null);
+    syncSMTFromMaster();
+    updateStemMasterBus();
+    showResetConfirm(rSmtEQ);
+  });
+
+  // Master This Mix — Compression
+  const rSmtComp = document.getElementById('resetSmtComp');
+  if (rSmtComp) rSmtComp.addEventListener('click', () => {
+    resetMasterSliders(['comp-threshold','comp-ratio','comp-attack','comp-release'], null);
+    syncSMTFromMaster();
+    updateStemMasterBus();
+    showResetConfirm(rSmtComp);
+  });
+
+  // Master This Mix — Output (width + gain + limiter ON)
+  const rSmtOutput = document.getElementById('resetSmtOutput');
+  if (rSmtOutput) rSmtOutput.addEventListener('click', () => {
+    resetMasterSliders(['stereo-width','output-gain'], null);
+    resetMasterToggle('limiter', true, null);
+    syncSMTFromMaster();
+    updateStemMasterBus();
+    showResetConfirm(rSmtOutput);
+  });
+}
+
 // Fast LUFS from raw Float32 channel arrays (no AudioBuffer needed)
 function computeLUFSFromData(L, R, sr) {
   const block = Math.floor(0.4 * sr), hop = Math.floor(0.1 * sr), n = L.length;
@@ -2383,6 +2959,124 @@ function computeLUFSFromData(L, R, sr) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// TOOLTIP SYSTEM
+// ─────────────────────────────────────────────────────────────────────────────
+(function initTooltips() {
+  const bubble = document.getElementById('tipBubble');
+  if (!bubble) return;
+
+  let activeIcon = null;
+  let hideTimer  = null;
+
+  function showTip(target) {
+    const text = target.dataset.tip;
+    if (!text) return;
+    clearTimeout(hideTimer);
+    if (activeIcon && activeIcon !== target) activeIcon.classList.remove('tip-active');
+    activeIcon = target;
+    target.classList.add('tip-active');
+
+    bubble.textContent = text;
+    bubble.classList.add('visible');
+
+    // Position: prefer above, fall back to below
+    const rect  = target.getBoundingClientRect();
+    const bw    = bubble.offsetWidth  || 260;
+    const bh    = bubble.offsetHeight || 60;
+    const gap   = 8;
+    let top, left;
+
+    // Horizontal: centre over target, clamp to viewport
+    left = rect.left + rect.width / 2 - bw / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - bw - 8));
+
+    // Vertical: try above first
+    if (rect.top - bh - gap >= 8) {
+      top = rect.top - bh - gap;
+    } else {
+      top = rect.bottom + gap;
+    }
+
+    bubble.style.left = left + 'px';
+    bubble.style.top  = top  + 'px';
+  }
+
+  function hideTip() {
+    hideTimer = setTimeout(() => {
+      bubble.classList.remove('visible');
+      if (activeIcon) { activeIcon.classList.remove('tip-active'); activeIcon = null; }
+    }, 120);
+  }
+
+  // Delegate: .tip-icon (hover) and [data-tip] elements (hover + tap)
+  document.addEventListener('mouseover', e => {
+    const t = e.target.closest('[data-tip]');
+    if (t) showTip(t);
+  });
+  document.addEventListener('mouseout', e => {
+    if (e.target.closest('[data-tip]')) hideTip();
+  });
+
+  // Tap on tip-icon: toggle
+  document.addEventListener('click', e => {
+    const t = e.target.closest('.tip-icon[data-tip]');
+    if (!t) return;
+    e.stopPropagation();
+    if (t === activeIcon && bubble.classList.contains('visible')) {
+      hideTip();
+    } else {
+      showTip(t);
+    }
+  });
+
+  // Close on outside click
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-tip]') && bubble.classList.contains('visible')) hideTip();
+  });
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELP PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function openHelp() {
+  const panel = document.getElementById('helpPanel');
+  if (!panel) return;
+  panel.classList.add('open');
+  document.getElementById('helpSearch')?.focus();
+}
+
+function closeHelp() {
+  document.getElementById('helpPanel')?.classList.remove('open');
+}
+
+function initHelpPanel() {
+  const panel    = document.getElementById('helpPanel');
+  const closeBtn = document.getElementById('helpClose');
+  const helpBtn  = document.getElementById('helpBtn');
+  const search   = document.getElementById('helpSearch');
+  if (!panel) return;
+
+  helpBtn?.addEventListener('click', openHelp);
+  closeBtn?.addEventListener('click', closeHelp);
+
+  // Close on backdrop click
+  panel.addEventListener('click', e => {
+    if (e.target === panel) closeHelp();
+  });
+
+  // Search filter
+  search?.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    document.querySelectorAll('#helpPanel .help-control-item').forEach(item => {
+      const name = item.querySelector('.help-ctrl-name')?.textContent.toLowerCase() || '';
+      const desc = item.querySelector('.help-ctrl-desc')?.textContent.toLowerCase() || '';
+      const tags = item.dataset.search || '';
+      item.hidden = q.length > 0 && !name.includes(q) && !desc.includes(q) && !tags.includes(q);
+    });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────────────────────────────────────────
 function init() {
@@ -2399,8 +3093,12 @@ function init() {
   initStemDropZone();
   initStemMasterPanel();
   initStemTransport();
+  initResetButtons();
+  initMasterSeekbar();
+  initStemSeekbar();
+  initHelpPanel();
 
-  // Reset All button
+  // Reset All button (global)
   const resetBtn = document.getElementById('resetAllBtn');
   if (resetBtn) resetBtn.addEventListener('click', resetAll);
 
@@ -2467,6 +3165,9 @@ let reverbIRBuf      = null;        // cached synthetic reverb impulse response
 let stemClockId      = null;        // setInterval transport clock
 let stemAnimId       = null;        // rAF spectrum loop
 let stemLufsInterval = null;        // setInterval LUFS meter
+let stemSeekRafId    = null;        // rAF seekbar loop
+let stemSeekDragging  = false;
+let stemSeekWasPlaying = false;
 let stemLufsHistory  = [];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2599,8 +3300,8 @@ function buildTrackHTML(s) {
         <div class="track-file">${s.filename} · ${fmtBytes(s.fileSize)}</div>
       </div>
       <div class="track-btns">
-        <button class="icon-btn${s.muted ? ' muted' : ''}" data-a="mute" title="Mute">M</button>
-        <button class="icon-btn${s.soloed ? ' soloed' : ''}" data-a="solo" title="Solo">S</button>
+        <button class="icon-btn${s.muted ? ' muted' : ''}" data-a="mute" data-tip="Silences this stem in the mix without removing it. Click again to unmute." title="Mute">M</button>
+        <button class="icon-btn${s.soloed ? ' soloed' : ''}" data-a="solo" data-tip="Plays only this stem, muting all others. Useful for checking an individual track in isolation. Click again to unsolo." title="Solo">S</button>
         <button class="track-remove" data-a="remove" title="Remove">✕</button>
       </div>
     </div>
@@ -2611,18 +3312,19 @@ function buildTrackHTML(s) {
     </div>
     <div class="track-mix">
       <div class="mix-vol">
-        <span class="mix-tag">VOL</span>
+        <span class="mix-tag" data-tip="Sets the volume of this stem relative to the other stems. 100% = original level. Adjust to balance instruments and vocals.">VOL</span>
         <input type="range" class="stem-slider" data-p="volume" min="0" max="150" step="1" value="${s.volume}" style="--stem-color:${c}">
         <span class="mix-num" data-v="volume">${sfmtVol(s.volume)}</span>
       </div>
       <div class="mix-pan">
-        <span class="mix-tag">PAN</span>
+        <span class="mix-tag" data-tip="Positions this stem in the stereo field. 0 = center, -100 = full left, +100 = full right.">PAN</span>
         <div class="pan-wrap">
           <input type="range" class="stem-slider" data-p="pan" min="-100" max="100" step="1" value="${s.pan}" style="--stem-color:${c}">
           <div class="pan-center"></div>
         </div>
         <span class="pan-num" data-v="pan">${sfmtPan(s.pan)}</span>
       </div>
+      <button class="stem-rst-btn" data-rst="mix" title="Reset volume & pan to defaults" style="margin-left:4px;">↺</button>
     </div>
     <div class="track-fx">
       <button class="fx-expand-btn${s.eqEnabled ? ' enabled' : ''}${s.eqOpen ? ' open' : ''}" data-a="toggleEQ">
@@ -2632,23 +3334,27 @@ function buildTrackHTML(s) {
         <span class="dot"></span> COMP <span class="chev">▼</span>
       </button>
       <div class="fx-inline">
-        <span class="fx-inline-lbl">REV</span>
+        <span class="fx-inline-lbl" data-tip="Adds room ambience to this stem. Higher values create a larger, more distant sound. Use sparingly on bass stems.">REV</span>
         <input type="range" class="stem-slider" data-p="reverb" min="0" max="100" step="1" value="${s.reverb}" style="--stem-color:${c}">
         <span class="fx-inline-val" data-v="reverb">${s.reverb}%</span>
+        <button class="stem-rst-btn" data-rst="reverb" title="Reset reverb to 0%">↺</button>
       </div>
       <div class="fx-inline">
-        <span class="fx-inline-lbl">WIDTH</span>
+        <span class="fx-inline-lbl" data-tip="Widens or narrows the stereo image of this individual stem. Narrowing bass stems improves mono compatibility.">WIDTH</span>
         <input type="range" class="stem-slider" data-p="width" min="0" max="200" step="1" value="${s.width}" style="--stem-color:${c}">
         <span class="fx-inline-val" data-v="width">${sfmtPct(s.width)}</span>
+        <button class="stem-rst-btn" data-rst="width" title="Reset stereo width to 100%">↺</button>
       </div>
-      <div class="fx-denoise${s.denoise ? ' on' : ''}${rnnoiseError ? ' disabled' : ''}" data-a="toggleDenoise" id="dn-pill-${s.id}" title="AI Denoise using RNNoise — active at export">
+      <div class="fx-denoise${s.denoise ? ' on' : ''}${rnnoiseError ? ' disabled' : ''}" data-a="toggleDenoise" id="dn-pill-${s.id}" data-tip="Applies RNNoise noise suppression to this individual stem before mixing. Most effective on vocal stems." title="AI Denoise using RNNoise — active at export">
         <span class="dn-spin">⏳</span>✨ AI Denoise
       </div>
-      <div class="fx-humanize${s.humanize ? ' on' : ''}" data-a="toggleHumanize" title="Adds subtle imperfections to reduce AI detection signatures">
+      <button class="stem-rst-btn" data-rst="denoise" title="Reset AI Denoise (toggle off)">↺</button>
+      <div class="fx-humanize${s.humanize ? ' on' : ''}" data-a="toggleHumanize" data-tip="Applies subtle random imperfections to the stem — micro-timing shifts, slight pitch drift, gentle volume fluctuations, and analog wow/flutter. Makes AI-generated audio sound more like a human performance." title="Adds subtle imperfections to reduce AI detection signatures">
         🎲 Humanize
       </div>
+      <button class="stem-rst-btn" data-rst="humanize" title="Reset Humanize (toggle off, intensity 0%)">↺</button>
       <div class="fx-inline" id="hum-sl-${s.id}" style="${s.humanize ? '' : 'opacity:.4;pointer-events:none'}">
-        <span class="fx-inline-lbl">INT</span>
+        <span class="fx-inline-lbl" data-tip="Controls how strong the humanization effect is. 0% = no effect. 100% = maximum imperfection. Start around 20–40% for natural results.">INT</span>
         <input type="range" class="stem-slider" data-p="humanizeIntensity" min="0" max="100" step="1" value="${s.humanizeIntensity}" style="--stem-color:${c}">
         <span class="fx-inline-val" data-v="humanizeIntensity">${s.humanizeIntensity}%</span>
       </div>
@@ -2659,6 +3365,7 @@ function buildTrackHTML(s) {
           <div class="exp-col-hdr">
             <span class="exp-enable-sw${s.eqEnabled ? ' on' : ''}" data-a="enableEQ">${s.eqEnabled ? 'ON' : 'OFF'}</span>
             EQ
+            <button class="stem-rst-btn" data-rst="eq" style="margin-left:auto" title="Reset EQ to defaults">↺</button>
           </div>
           ${eqRows}
         </div>
@@ -2678,6 +3385,7 @@ function buildTrackHTML(s) {
           <div class="exp-col-hdr">
             <span class="exp-enable-sw${s.compEnabled ? ' on' : ''}" data-a="enableComp">${s.compEnabled ? 'ON' : 'OFF'}</span>
             COMP
+            <button class="stem-rst-btn" data-rst="comp" style="margin-left:auto" title="Reset Compression to defaults">↺</button>
           </div>
           ${compRows}
         </div>
@@ -2701,6 +3409,12 @@ function createTrackEl(s) {
 // ─────────────────────────────────────────────────────────────────────────────
 function attachTrackEvents(el, s) {
   el.addEventListener('click', e => {
+    const rstBtn = e.target.closest('[data-rst]');
+    if (rstBtn) {
+      e.stopPropagation();
+      resetStemSection(s, el, rstBtn.dataset.rst, rstBtn);
+      return;
+    }
     const btn = e.target.closest('[data-a]');
     if (!btn) return;
     const a = btn.dataset.a;
@@ -2876,7 +3590,18 @@ function updateStemUI() {
   document.getElementById('stemDropZone').style.display = hasStems ? 'none' : '';
   document.getElementById('stemsList').style.display    = hasStems ? 'grid' : 'none';
   document.getElementById('clearAllBtn').style.display  = hasStems ? '' : 'none';
+  document.getElementById('resetAllStemsBtn').style.display = hasStems ? '' : 'none';
   document.getElementById('stemCount').textContent      = `${stems.length} / ${MAX_STEMS} stems`;
+
+  // Reset seekbar when stems cleared
+  if (!hasStems) {
+    const sk  = document.getElementById('stemSeek');
+    const cur = document.getElementById('stemSeekCur');
+    const dur = document.getElementById('stemSeekDur');
+    if (sk)  { sk.value = 0; setSeekbarFill(sk, 0); }
+    if (cur) cur.textContent = fmtTime(0);
+    if (dur) dur.textContent = fmtTime(0);
+  }
 
   // Transport visibility and button states
   const transport = document.getElementById('stemTransport');
@@ -3078,6 +3803,7 @@ async function decodeAndBuildStem(file, s) {
   renderStemWaveform(s, buffer);
   buildStemNodes(s);
   updateStemUI(); // enable transport buttons now that buffer is ready
+  updateStemSeekbarDuration();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3162,6 +3888,7 @@ function playAllStems() {
   startStemTransportClock();
   startStemSpectrumLoop();
   startStemLUFSLoop();
+  startStemSeekbarLoop();
 }
 
 function stopAllStems(keepOffset) {
@@ -3178,6 +3905,7 @@ function stopAllStems(keepOffset) {
   stopStemTransportClock();
   stopStemSpectrumLoop();
   stopStemLUFSLoop();
+  stopStemSeekbarLoop(keepOffset ? stemPlayOffset : 0);
 }
 
 function handleStemPlaybackEnd() {
@@ -3189,6 +3917,11 @@ function handleStemPlaybackEnd() {
   const sEl = document.getElementById('stemTransportSub');
   if (tEl) tEl.textContent = fmtStemTime(0);
   if (sEl) sEl.textContent = fmtStemTime(0) + ' / ' + fmtStemTime(stemMaxDuration);
+  // Reset stem seekbar to start
+  const sk  = document.getElementById('stemSeek');
+  const cur = document.getElementById('stemSeekCur');
+  if (sk)  { sk.value = 0; setSeekbarFill(sk, 0); }
+  if (cur) cur.textContent = fmtTime(0);
 }
 
 function toggleStemPlayback() {
@@ -3331,6 +4064,71 @@ function stopStemLUFSLoop() {
   if (intEl) { intEl.textContent = '—'; intEl.className = 'lufs-num'; }
   const fill = document.getElementById('stemLufsFill');
   if (fill) fill.style.width = '0%';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STEM SEEKBAR
+// ─────────────────────────────────────────────────────────────────────────────
+function startStemSeekbarLoop() {
+  if (stemSeekRafId) { cancelAnimationFrame(stemSeekRafId); stemSeekRafId = null; }
+  animateStemSeekbar();
+}
+
+function animateStemSeekbar() {
+  if (!stemIsPlaying || !audioCtx) return;
+  stemSeekRafId = requestAnimationFrame(animateStemSeekbar);
+  if (stemSeekDragging) return;
+  const elapsed = audioCtx.currentTime - stemPlayStartTime;
+  if (stemMaxDuration <= 0) return;
+  const pct = Math.max(0, Math.min(1, elapsed / stemMaxDuration)) * 100;
+  const sk = document.getElementById('stemSeek');
+  if (sk) { sk.value = Math.round(pct * 10); setSeekbarFill(sk, pct); }
+  const cur = document.getElementById('stemSeekCur');
+  if (cur) cur.textContent = fmtTime(elapsed);
+}
+
+function stopStemSeekbarLoop(pausedOffset) {
+  if (pausedOffset === undefined) pausedOffset = 0;
+  if (stemSeekRafId) { cancelAnimationFrame(stemSeekRafId); stemSeekRafId = null; }
+  if (stemMaxDuration > 0) {
+    const pct = Math.max(0, Math.min(1, pausedOffset / stemMaxDuration)) * 100;
+    const sk = document.getElementById('stemSeek');
+    if (sk) { sk.value = Math.round(pct * 10); setSeekbarFill(sk, pct); }
+    const cur = document.getElementById('stemSeekCur');
+    if (cur) cur.textContent = fmtTime(pausedOffset);
+  }
+}
+
+function updateStemSeekbarDuration() {
+  const dur = document.getElementById('stemSeekDur');
+  if (dur) dur.textContent = fmtTime(stemMaxDuration);
+}
+
+function initStemSeekbar() {
+  const sk  = document.getElementById('stemSeek');
+  const cur = document.getElementById('stemSeekCur');
+  if (!sk) return;
+  sk.addEventListener('pointerdown', () => {
+    stemSeekDragging = true; stemSeekWasPlaying = stemIsPlaying;
+    if (stemIsPlaying) { stemPlayOffset = audioCtx.currentTime - stemPlayStartTime; stopAllStems(true); }
+  });
+  sk.addEventListener('input', () => {
+    const pct = sk.value / 1000;
+    stemPlayOffset = pct * (stemMaxDuration || 1);
+    if (cur) cur.textContent = fmtTime(stemPlayOffset);
+    setSeekbarFill(sk, pct * 100);
+  });
+  sk.addEventListener('pointerup', () => {
+    stemSeekDragging = false;
+    if (stemSeekWasPlaying) playAllStems();
+    stemSeekWasPlaying = false;
+  });
+  sk.addEventListener('touchend', () => {
+    if (!stemSeekDragging) return;
+    stemSeekDragging = false;
+    if (stemSeekWasPlaying) playAllStems();
+    stemSeekWasPlaying = false;
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -3823,5 +4621,217 @@ function initStemMasterPanel() {
   syncSMTFromMaster();
 }
 </script>
+
+<!-- ── Tooltip bubble (singleton) ──────────────────────────── -->
+<div id="tipBubble"></div>
+
+<!-- ══════════════════ HELP PANEL ══════════════════ -->
+<div id="helpPanel" role="dialog" aria-modal="true" aria-label="SONIQ Help Guide">
+  <div class="help-modal">
+    <div class="help-modal-head">
+      <span class="help-modal-title">📖 SONIQ Help Guide</span>
+      <input type="text" class="help-search" id="helpSearch" placeholder="Search controls…" autocomplete="off">
+      <button class="help-close" id="helpClose" aria-label="Close help">✕</button>
+    </div>
+    <div class="help-body">
+
+      <!-- Quick Start Guide -->
+      <div>
+        <div class="help-section-title">Quick Start Guide</div>
+        <ol class="help-steps">
+          <li>Load your audio file — drag &amp; drop or click the drop zone in the Master tab.</li>
+          <li>Choose a preset closest to your goal (Vocal Boost, Hi-Fi Master, Warmth, etc.).</li>
+          <li>Fine-tune the EQ bands to shape the frequency balance to taste.</li>
+          <li>Adjust Compression — lower the threshold for more punch, raise Ratio for heavier squash.</li>
+          <li>Enable AI Denoise ✨ if your recording has background noise or hiss.</li>
+          <li>Hit <strong>Enhance</strong> to apply mastering processing via the browser.</li>
+          <li>Use <strong>A/B Compare</strong> during playback to judge before vs. after.</li>
+          <li>Export at 24-bit WAV when satisfied — or use the Stem Mixer for multi-track projects.</li>
+        </ol>
+      </div>
+
+      <!-- What is Mastering? -->
+      <div>
+        <div class="help-section-title">What is Mastering?</div>
+        <p class="help-plain">Mastering is the final step in music production — it's the process of taking a finished mix and preparing it for distribution. A mastering engineer listens critically, applies subtle EQ and compression to balance the frequency spectrum, controls the loudness level to hit streaming platform targets, and ensures the audio sounds consistent across all playback systems (headphones, car speakers, club systems, earbuds).<br><br>SONIQ does this automatically in your browser using the Web Audio API. No uploads, no plugins, no subscription — just instant professional-quality results.</p>
+      </div>
+
+      <!-- Stem Mixer Guide -->
+      <div>
+        <div class="help-section-title">Stem Mixer Guide</div>
+        <p class="help-plain">The Stem Mixer lets you work with individual instrument tracks (vocals, guitar, bass, drums, keys, etc.) before combining them into a final master.<br><br><strong>Workflow:</strong> Drop each stem file onto the Stem Mixer drop zone, one per instrument. Each stem gets its own volume fader, pan, reverb, stereo width, AI Denoise, and Humanize controls. When you're happy with the balance, click <strong>Master This Mix</strong> to apply a final mastering chain to the combined output and export.<br><br><strong>Humanize</strong> is especially useful for AI-generated stems — it adds subtle micro-timing shifts, pitch drift, and volume fluctuations to make them sound more like a human performance. Start at 20–40% intensity for natural results.</p>
+      </div>
+
+      <!-- Distribution Loudness Targets -->
+      <div>
+        <div class="help-section-title">TuneCore / Distribution Loudness Targets</div>
+        <p class="help-plain" style="margin-bottom:14px;">Each streaming platform normalizes audio to a target loudness. Mastering louder than their target wastes headroom — the platform just turns it down. Match these targets for the best result:</p>
+        <table class="help-lufs-table">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Integrated LUFS</th>
+              <th>True Peak</th>
+              <th>Recommended Preset</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Spotify</td><td class="lufs-val">-14 LUFS</td><td>-1 dBTP</td><td>Hi-Fi Master</td></tr>
+            <tr><td>Apple Music</td><td class="lufs-val">-16 LUFS</td><td>-1 dBTP</td><td>Hi-Fi Master / Max Clarity</td></tr>
+            <tr><td>Amazon Music</td><td class="lufs-val">-14 LUFS</td><td>-2 dBTP</td><td>Hi-Fi Master</td></tr>
+            <tr><td>YouTube</td><td class="lufs-val">-14 LUFS</td><td>-1 dBTP</td><td>Broadcast</td></tr>
+            <tr><td>TikTok</td><td class="lufs-val">-14 LUFS</td><td>—</td><td>Broadcast / Hi-Fi Master</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Master Tab Controls Reference -->
+      <div>
+        <div class="help-section-title">Master Tab — Controls Reference</div>
+        <div class="help-control-list" id="helpControlList">
+          <div class="help-control-item" data-search="ai denoise rnnoise noise suppression neural">
+            <div class="help-ctrl-name">AI Denoise ✨</div>
+            <div class="help-ctrl-desc">Uses RNNoise neural network to remove background hiss, hum, and noise. Works best on vocals and voice recordings. Processing is entirely in-browser — nothing is uploaded.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Toggle</span><span class="help-ctrl-tag tag-default">Default: OFF</span></div>
+          </div>
+          <div class="help-control-item" data-search="noise gate silence threshold gate">
+            <div class="help-ctrl-name">Noise Gate</div>
+            <div class="help-ctrl-desc">Automatically silences audio that falls below a volume threshold. Useful for cutting out background noise between sung phrases or spoken words.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Toggle</span><span class="help-ctrl-tag tag-default">Default: OFF</span></div>
+          </div>
+          <div class="help-control-item" data-search="limiter clipping peak ceiling dbtfs">
+            <div class="help-ctrl-name">Limiter</div>
+            <div class="help-ctrl-desc">Prevents audio from exceeding -1 dBFS. Acts as a safety net against harsh digital clipping on export.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Toggle</span><span class="help-ctrl-tag tag-default">Default: ON</span></div>
+          </div>
+          <div class="help-control-item" data-search="sub bass 60hz rumble kick low frequency">
+            <div class="help-ctrl-name">Sub Bass (60 Hz)</div>
+            <div class="help-ctrl-desc">Controls the deep rumble and sub-bass. Boost for more power in kick drums and bass lines. Cut if the track sounds muddy on small speakers.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="bass 200hz warmth body low end boomy">
+            <div class="help-ctrl-name">Bass (200 Hz)</div>
+            <div class="help-ctrl-desc">Controls warmth and body in the low end. Boost for fullness, cut if the mix sounds boomy or unclear.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="midrange 1khz presence vocal instruments scooped">
+            <div class="help-ctrl-name">Midrange (1 kHz)</div>
+            <div class="help-ctrl-desc">The presence of most instruments and vocals lives here. Cut slightly for a modern scooped sound, boost to bring vocals forward.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="presence 3.5khz vocal intelligibility guitar bite">
+            <div class="help-ctrl-name">Presence (3.5 kHz)</div>
+            <div class="help-ctrl-desc">Key frequency range for vocal intelligibility and guitar bite. Boosting here makes vocals cut through the mix.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="highs 8khz brightness clarity harshness sibilance">
+            <div class="help-ctrl-name">Highs (8 kHz)</div>
+            <div class="help-ctrl-desc">Controls brightness and definition. Boost to add clarity and detail, cut to reduce harshness or sibilance.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="air 12khz sparkle openness top end sheen">
+            <div class="help-ctrl-name">Air (12 kHz)</div>
+            <div class="help-ctrl-desc">Adds sparkle and openness to the top end. A gentle boost makes recordings sound more professional and airy.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="de-mud demud 300hz mud congestion acoustic guitar">
+            <div class="help-ctrl-name">De-Mud (300 Hz)</div>
+            <div class="help-ctrl-desc">Cuts the muddy buildup that clouds mixes. Effective for cleaning up vocals, acoustic guitars, and full mixes that sound congested.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">EQ Band</span><span class="help-ctrl-tag tag-default">Default: 0%</span></div>
+          </div>
+          <div class="help-control-item" data-search="threshold compression kicks in volume level">
+            <div class="help-ctrl-name">Threshold</div>
+            <div class="help-ctrl-desc">Sets the volume level at which compression kicks in. Lower = more compression applied.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Compressor</span><span class="help-ctrl-tag tag-default">Default: -18 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="ratio compression 4:1 gain reduction">
+            <div class="help-ctrl-name">Ratio</div>
+            <div class="help-ctrl-desc">How aggressively the compressor clamps the signal above the threshold. 4:1 = gentle; 20:1 = hard limiting.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Compressor</span><span class="help-ctrl-tag tag-default">Default: 4:1</span></div>
+          </div>
+          <div class="help-control-item" data-search="attack transient punch speed compressor fast slow">
+            <div class="help-ctrl-name">Attack</div>
+            <div class="help-ctrl-desc">How quickly the compressor responds after the signal crosses the threshold. Faster = tighter. Slower = more punch.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Compressor</span><span class="help-ctrl-tag tag-default">Default: 10 ms</span></div>
+          </div>
+          <div class="help-control-item" data-search="release compressor let go recover snappy smooth">
+            <div class="help-ctrl-name">Release</div>
+            <div class="help-ctrl-desc">How quickly compression releases after the signal drops below the threshold. Shorter = snappier, longer = smoother.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Compressor</span><span class="help-ctrl-tag tag-default">Default: 100 ms</span></div>
+          </div>
+          <div class="help-control-item" data-search="stereo width mid side ms wide narrow mono">
+            <div class="help-ctrl-name">Stereo Width</div>
+            <div class="help-ctrl-desc">Expands or narrows the stereo image via M/S processing. 100% = original. 150%+ = immersive. Keep above 80% for mono compatibility.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Output</span><span class="help-ctrl-tag tag-default">Default: 100%</span></div>
+          </div>
+          <div class="help-control-item" data-search="output gain volume loudness final level">
+            <div class="help-ctrl-name">Output Gain</div>
+            <div class="help-ctrl-desc">The final volume after processing, before the limiter. Raise to hit target loudness, lower if the limiter is clamping too hard.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Output</span><span class="help-ctrl-tag tag-default">Default: 0 dB</span></div>
+          </div>
+          <div class="help-control-item" data-search="ab compare before after original mastered toggle">
+            <div class="help-ctrl-name">A/B Compare</div>
+            <div class="help-ctrl-desc">Instantly flip between original (A) and mastered (B) audio during playback. Use to judge if processing is improving the sound.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Playback</span><span class="help-ctrl-tag">Shortcut: A</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stem Mixer Controls Reference -->
+      <div>
+        <div class="help-section-title">Stem Mixer — Controls Reference</div>
+        <div class="help-control-list">
+          <div class="help-control-item" data-search="volume fader level balance 100%">
+            <div class="help-ctrl-name">Volume Fader</div>
+            <div class="help-ctrl-desc">Sets the volume of this stem relative to others. 100% = original level. Adjust to balance instruments and vocals.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Mix</span><span class="help-ctrl-tag tag-default">Default: 100%</span></div>
+          </div>
+          <div class="help-control-item" data-search="pan stereo left right center position">
+            <div class="help-ctrl-name">Pan</div>
+            <div class="help-ctrl-desc">Positions this stem in the stereo field. 0 = center, -100 = full left, +100 = full right.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Mix</span><span class="help-ctrl-tag tag-default">Default: Center</span></div>
+          </div>
+          <div class="help-control-item" data-search="mute silence stem off">
+            <div class="help-ctrl-name">Mute (M)</div>
+            <div class="help-ctrl-desc">Silences this stem in the mix without removing it. Click again to unmute. Keyboard shortcut: M (with stem selected).</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Mix</span><span class="help-ctrl-tag">Shortcut: M</span></div>
+          </div>
+          <div class="help-control-item" data-search="solo isolate stem listen alone">
+            <div class="help-ctrl-name">Solo (S)</div>
+            <div class="help-ctrl-desc">Plays only this stem, muting all others. Useful for checking an individual track in isolation. Click again to unsolo.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">Mix</span><span class="help-ctrl-tag">Shortcut: S</span></div>
+          </div>
+          <div class="help-control-item" data-search="reverb room ambience space distance">
+            <div class="help-ctrl-name">Reverb</div>
+            <div class="help-ctrl-desc">Adds room ambience to this stem. Higher values create a larger, more distant sound. Use sparingly on bass stems to preserve punch.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">FX</span><span class="help-ctrl-tag tag-default">Default: 0%</span></div>
+          </div>
+          <div class="help-control-item" data-search="stereo width mid side stem narrow wide bass">
+            <div class="help-ctrl-name">Per-Stem Stereo Width</div>
+            <div class="help-ctrl-desc">Widens or narrows the stereo image of this individual stem. Narrowing bass stems to 80–100% improves mono compatibility.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">FX</span><span class="help-ctrl-tag tag-default">Default: 100%</span></div>
+          </div>
+          <div class="help-control-item" data-search="denoise rnnoise ai noise vocal stem per track">
+            <div class="help-ctrl-name">Per-Stem AI Denoise ✨</div>
+            <div class="help-ctrl-desc">Applies RNNoise neural noise suppression to this individual stem before mixing. Most effective on vocal stems. Applied at export time.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">FX</span><span class="help-ctrl-tag tag-default">Default: OFF</span></div>
+          </div>
+          <div class="help-control-item" data-search="humanize imperfections ai detection human performance timing">
+            <div class="help-ctrl-name">Humanize 🎲</div>
+            <div class="help-ctrl-desc">Applies subtle random imperfections — micro-timing shifts, pitch drift, volume fluctuations, analog wow/flutter. Makes AI-generated audio sound more like a human performance.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">FX</span><span class="help-ctrl-tag tag-default">Default: OFF</span></div>
+          </div>
+          <div class="help-control-item" data-search="humanize intensity strength amount 20% 40%">
+            <div class="help-ctrl-name">Humanize Intensity</div>
+            <div class="help-ctrl-desc">Controls how strong the humanization is. 0% = no effect. 100% = maximum imperfection. Start around 20–40% for natural results.</div>
+            <div class="help-ctrl-meta"><span class="help-ctrl-tag">FX</span><span class="help-ctrl-tag tag-default">Default: 0%</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.help-body -->
+  </div><!-- /.help-modal -->
+</div><!-- /#helpPanel -->
+
 </body>
 </html>
