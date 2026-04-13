@@ -134,6 +134,15 @@ jobs:
           mkdir -p deploy/soniq-qa-v9
           cp soniq/qa-v9/index.html deploy/soniq-qa-v9/index.html
 
+      # ── SONIQ v10 (modular) ───────────────────────────────────
+      - name: Build and Deploy SONIQ v10
+        run: |
+          cd soniq-v10
+          npm install
+          npx vite build
+          mkdir -p ../deploy/soniq-qa-v10
+          cp -r dist/. ../deploy/soniq-qa-v10/
+
       # ── BRAINQUEST stable ─────────────────────────────────────
       - name: Copy BrainQuest
         run: |
