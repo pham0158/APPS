@@ -139,6 +139,7 @@ jobs:
         run: |
           cd soniq-v10
           npm install
+          sed -i "s|base: '.*'|base: '/soniq-qa-v10/'|" vite.config.js
           npx vite build
           mkdir -p ../deploy/soniq-qa-v10
           cp -r dist/. ../deploy/soniq-qa-v10/
