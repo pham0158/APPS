@@ -910,10 +910,7 @@ export default class StemTab {
       for(let i=0;i<processed.length;i++){
         const{s,buf}=processed[i]; setP(42+(i/processed.length)*52,`Encoding ${s.name}… (${i+1}/${processed.length})`);
         const nch=Math.max(buf.numberOfChannels,2),offCtx=new OfflineAudioContext(nch,Math.ceil(buf.duration*sr),sr);
-        const padBuf=offCtx.createBuffer(nch,Math.ceil(buf.duration*sr),sr);
-        for(let c=0;c<buf.numberOfChannels;c++)padBuf.copyToChannel(buf.getChannelData(c),c);
-        if(buf.numberOfChannels===1)padBuf.copyToChannel(buf.getChannelData(0),1);
-        const src=offCtx.createBufferSource();src.buffer=padBuf;
+        const src=offCtx.createBufferSource();src.buffer=buf;
         const out=this._offStemChain(offCtx,s,src);const mi=offCtx.createGain();out.connect(mi);this._offMasterBus(offCtx,mi,limOn);src.start(0);
         let rendered=await offCtx.startRendering();_stereoWidth(rendered,widthW);
         const blob=encodeWAV(rendered,bitDepth);zip.file(`${s.name}_${bitDepth}bit.wav`,await blob.arrayBuffer());
@@ -930,10 +927,7 @@ export default class StemTab {
     setP(46,'Building mix graph…');
     const offCtx=new OfflineAudioContext(2,Math.ceil(dur*sr),sr),mixBus=offCtx.createGain();
     for(const{s:st,buf}of processed){
-      const padLen=Math.ceil(dur*sr),padBuf=offCtx.createBuffer(Math.max(buf.numberOfChannels,2),padLen,sr);
-      for(let c=0;c<buf.numberOfChannels;c++){const dst=padBuf.getChannelData(c),src2=buf.getChannelData(c);dst.set(src2.subarray(0,Math.min(src2.length,padLen)));}
-      if(buf.numberOfChannels===1)padBuf.copyToChannel(padBuf.getChannelData(0),1);
-      const src=offCtx.createBufferSource();src.buffer=padBuf;this._offStemChain(offCtx,st,src).connect(mixBus);src.start(0);
+      const src=offCtx.createBufferSource();src.buffer=buf;this._offStemChain(offCtx,st,src).connect(mixBus);src.start(0);
     }
     this._offMasterBus(offCtx,mixBus,limOn);
     setP(52,'Rendering…'); let rendered=await offCtx.startRendering();

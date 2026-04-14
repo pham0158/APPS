@@ -99,9 +99,8 @@ export default class Exporter {
 
       const nch    = Math.max(buf.numberOfChannels, 2);
       const offCtx = new OfflineAudioContext(nch, Math.ceil(dur * sr), sr);
-      const padBuf = _padBuffer(offCtx, buf, nch, Math.ceil(dur * sr), sr);
       const src    = offCtx.createBufferSource();
-      src.buffer   = padBuf;
+      src.buffer   = buf;
 
       const chainOut = _buildOfflineStemChain(offCtx, s, src);
       const masterIn = offCtx.createGain();
@@ -123,9 +122,8 @@ export default class Exporter {
     const mixBus = offCtx.createGain();
     for (const s of ready) {
       const buf    = stemBuffers.get(s.id);
-      const padBuf = _padBuffer(offCtx, buf, Math.max(buf.numberOfChannels, 2), Math.ceil(dur * sr), sr);
       const src    = offCtx.createBufferSource();
-      src.buffer   = padBuf;
+      src.buffer   = buf;
       const out    = _buildOfflineStemChain(offCtx, s, src);
       out.connect(mixBus);
       src.start(0);
@@ -255,19 +253,6 @@ function _applyNoiseGate(buf) {
       if (env < thresh) d[i] *= Math.max(0, env / thresh);
     }
   }
-}
-
-/** Pad (or trim) a buffer to `len` samples, upmixing mono→stereo as needed. */
-function _padBuffer(offCtx, buf, nch, len, sr) {
-  const out = offCtx.createBuffer(nch, len, sr);
-  for (let c = 0; c < buf.numberOfChannels; c++) {
-    const src = buf.getChannelData(c);
-    const dst = out.getChannelData(c);
-    dst.set(src.subarray(0, Math.min(src.length, len)));
-  }
-  if (buf.numberOfChannels === 1 && nch >= 2)
-    out.copyToChannel(out.getChannelData(0), 1);
-  return out;
 }
 
 /**
