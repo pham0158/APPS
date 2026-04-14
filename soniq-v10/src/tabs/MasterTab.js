@@ -992,7 +992,7 @@ export default class MasterTab {
     sub.gain.value = s['eq-sub'] || 0;
 
     const bass = offCtx.createBiquadFilter();
-    bass.type = 'peaking'; bass.frequency.value = 200; bass.Q.value = 1.0;
+    bass.type = 'lowshelf'; bass.frequency.value = 120;
     bass.gain.value = s['eq-bass'] || 0;
 
     const mid = offCtx.createBiquadFilter();
@@ -1005,10 +1005,10 @@ export default class MasterTab {
 
     const demud = offCtx.createBiquadFilter();
     demud.type = 'peaking'; demud.frequency.value = 300; demud.Q.value = 1.5;
-    demud.gain.value = -((s['eq-demud'] || 0) / 100) * 10;
+    demud.gain.value = -((s['eq-demud'] || 0) / 100) * 12;
 
     const pres = offCtx.createBiquadFilter();
-    pres.type = 'peaking'; pres.frequency.value = 3500; pres.Q.value = 1.2;
+    pres.type = 'peaking'; pres.frequency.value = 3000; pres.Q.value = 1.2;
     pres.gain.value = s['eq-presence'] || 0;
 
     const air = offCtx.createBiquadFilter();
@@ -1040,10 +1040,16 @@ export default class MasterTab {
     const outGain = offCtx.createGain();
     outGain.gain.value = dbToGain(s['output-gain'] || 0);
 
-    srcNode.connect(hpf);
-    hpf.connect(sub); sub.connect(bass); bass.connect(mid); mid.connect(highs);
-    highs.connect(demud); demud.connect(pres); pres.connect(air);
-    air.connect(comp); comp.connect(limiter); limiter.connect(outGain);
+    // Build dynamic chain — skip sub/mid/highs when at 0 to avoid phase rotation
+    const chain = [hpf];
+    if ((s['eq-sub']   || 0) !== 0) chain.push(sub);
+    chain.push(bass);
+    if ((s['eq-mid']   || 0) !== 0) chain.push(mid);
+    if ((s['eq-highs'] || 0) !== 0) chain.push(highs);
+    chain.push(demud, pres, air, comp, limiter, outGain);
+
+    srcNode.connect(chain[0]);
+    for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1]);
     outGain.connect(offCtx.destination);
   }
 
@@ -1157,24 +1163,6 @@ export default class MasterTab {
     this._playSource = ctx.createBufferSource();
     this._playSource.buffer = buf;
 
-    // Build live EQ chain
-    const sub   = ctx.createBiquadFilter(); sub.type = 'lowshelf';  sub.frequency.value = 60;
-    sub.gain.value = this._sliders['eq-sub'] || 0;
-    const bass  = ctx.createBiquadFilter(); bass.type = 'peaking'; bass.frequency.value = 200; bass.Q.value = 1.0;
-    bass.gain.value = this._sliders['eq-bass'] || 0;
-    const mid   = ctx.createBiquadFilter(); mid.type = 'peaking';  mid.frequency.value = 1000; mid.Q.value = 1.0;
-    mid.gain.value = this._sliders['eq-mid'] || 0;
-    const highs = ctx.createBiquadFilter(); highs.type = 'peaking'; highs.frequency.value = 8000; highs.Q.value = 1.0;
-    highs.gain.value = this._sliders['eq-highs'] || 0;
-    const demud = ctx.createBiquadFilter(); demud.type = 'peaking'; demud.frequency.value = 300; demud.Q.value = 1.5;
-    demud.gain.value = -((this._sliders['eq-demud'] || 0) / 100) * 10;
-    const pres  = ctx.createBiquadFilter(); pres.type = 'peaking';  pres.frequency.value = 3500; pres.Q.value = 1.2;
-    pres.gain.value = this._sliders['eq-presence'] || 0;
-    const air   = ctx.createBiquadFilter(); air.type = 'highshelf'; air.frequency.value = 12000;
-    air.gain.value = this._sliders['eq-air'] || 0;
-
-    this._liveEqNodes = { sub, bass, mid, highs, demud, pres, air };
-
     // Splitter for L/R peak metering
     const splitter = ctx.createChannelSplitter(2);
     const analyserL = ctx.createAnalyser(); analyserL.fftSize = 512; analyserL.smoothingTimeConstant = 0.5;
@@ -1184,12 +1172,9 @@ export default class MasterTab {
     this._playAnalyser.fftSize = 4096;
     this._playAnalyser.smoothingTimeConstant = 0.8;
 
-    // source → EQ chain → analyser + splitter → destination
-    this._playSource.connect(sub);
-    sub.connect(bass); bass.connect(mid); mid.connect(highs);
-    highs.connect(demud); demud.connect(pres); pres.connect(air);
-    air.connect(this._playAnalyser);
-    air.connect(splitter);
+    // source → analyser + splitter → destination (no EQ in live path — matches v6)
+    this._playSource.connect(this._playAnalyser);
+    this._playSource.connect(splitter);
     splitter.connect(analyserL, 0);
     splitter.connect(analyserR, 1);
     this._playAnalyser.connect(ctx.destination);

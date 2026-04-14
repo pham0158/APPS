@@ -1,16 +1,16 @@
 // ── 8-band parametric EQ ─────────────────────────────────────────────────────
-// Chain: HPF(80Hz) → Sub(60Hz shelf) → Bass(200Hz peak) → Mid(1kHz peak)
-//        → Highs(8kHz peak) → DeMud(300Hz notch) → Presence(3.5kHz peak)
+// Chain: HPF(80Hz) → Sub(60Hz shelf) → Bass(120Hz shelf) → Mid(1kHz peak)
+//        → Highs(8kHz peak) → DeMud(300Hz notch) → Presence(3kHz peak)
 //        → Air(12kHz shelf)
 
 const DEFAULTS = {
   sub:      0,   // dB, lowshelf  @ 60 Hz
-  bass:     0,   // dB, peaking   @ 200 Hz
+  bass:     0,   // dB, lowshelf  @ 120 Hz
   mid:      0,   // dB, peaking   @ 1 kHz
   highs:    0,   // dB, peaking   @ 8 kHz
-  presence: 0,   // dB, peaking   @ 3.5 kHz
+  presence: 0,   // dB, peaking   @ 3 kHz
   air:      0,   // dB, highshelf @ 12 kHz
-  deMud:    0,   // 0–100 (→ 0 to −10 dB notch @ 300 Hz)
+  deMud:    0,   // 0–100 (→ 0 to −12 dB notch @ 300 Hz)
 };
 
 export default class EQ {
@@ -32,11 +32,10 @@ export default class EQ {
     this.subBass.frequency.value = 60;
     this.subBass.gain.value = DEFAULTS.sub;
 
-    // 3. Bass — peaking @ 200 Hz
+    // 3. Bass — lowshelf @ 120 Hz
     this.bass = audioCtx.createBiquadFilter();
-    this.bass.type = 'peaking';
-    this.bass.frequency.value = 200;
-    this.bass.Q.value = 1.0;
+    this.bass.type = 'lowshelf';
+    this.bass.frequency.value = 120;
     this.bass.gain.value = DEFAULTS.bass;
 
     // 4. Mid — peaking @ 1 kHz
@@ -53,17 +52,17 @@ export default class EQ {
     this.highs.Q.value = 1.0;
     this.highs.gain.value = DEFAULTS.highs;
 
-    // 6. De-Mud — peaking notch @ 300 Hz (negative gain, 0–100 → 0 to −10 dB)
+    // 6. De-Mud — peaking notch @ 300 Hz (negative gain, 0–100 → 0 to −12 dB)
     this.deMud = audioCtx.createBiquadFilter();
     this.deMud.type = 'peaking';
     this.deMud.frequency.value = 300;
     this.deMud.Q.value = 1.5;
     this.deMud.gain.value = 0;
 
-    // 7. Presence — peaking @ 3.5 kHz
+    // 7. Presence — peaking @ 3 kHz
     this.presence = audioCtx.createBiquadFilter();
     this.presence.type = 'peaking';
-    this.presence.frequency.value = 3500;
+    this.presence.frequency.value = 3000;
     this.presence.Q.value = 1.2;
     this.presence.gain.value = DEFAULTS.presence;
 
@@ -114,7 +113,7 @@ export default class EQ {
    */
   setDeMud(pct) {
     this._deMudPct = pct;
-    this.deMud.gain.value = -(pct / 100) * 10;
+    this.deMud.gain.value = -(pct / 100) * 12;
   }
 
   /** @returns {{ sub, bass, mid, highs, presence, air, deMud }} current dB values */
