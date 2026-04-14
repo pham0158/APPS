@@ -119,16 +119,6 @@ function _stereoWidth(buf, w) {
   const L=buf.getChannelData(0),R=buf.getChannelData(1);
   for(let i=0;i<L.length;i++){const m=(L[i]+R[i])*0.5,s=(L[i]-R[i])*0.5*w;L[i]=m+s;R[i]=m-s;}
 }
-/** Resample an AudioBuffer to targetSR via OfflineAudioContext. */
-async function _resampleBuf(buf, targetSR) {
-  const len = Math.round(buf.length * targetSR / buf.sampleRate);
-  const off = new OfflineAudioContext(buf.numberOfChannels, len, targetSR);
-  const src = off.createBufferSource();
-  src.buffer = buf;
-  src.connect(off.destination);
-  src.start(0);
-  return off.startRendering();
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default class StemTab {
@@ -910,7 +900,7 @@ export default class StemTab {
     }
 
     const limOn=this._q('smt-limiter')?.classList.contains('on')??true;
-    const sr=Math.max(...processed.map(x=>x.buf.sampleRate));
+    const sr=processed[0]?.buf.sampleRate??44100;
     const dur=Math.max(...processed.map(x=>x.buf.duration));
     const widthW=parseFloat(document.getElementById('smt-width')?.value??100)/100;
 
@@ -918,8 +908,7 @@ export default class StemTab {
       if(typeof JSZip==='undefined'){alert('JSZip not loaded.');hideP();return;}
       const zip=new JSZip();
       for(let i=0;i<processed.length;i++){
-        const{s,buf:rawBuf}=processed[i]; setP(42+(i/processed.length)*52,`Encoding ${s.name}… (${i+1}/${processed.length})`);
-        const buf=rawBuf.sampleRate!==sr?await _resampleBuf(rawBuf,sr):rawBuf;
+        const{s,buf}=processed[i]; setP(42+(i/processed.length)*52,`Encoding ${s.name}… (${i+1}/${processed.length})`);
         const nch=Math.max(buf.numberOfChannels,2),offCtx=new OfflineAudioContext(nch,Math.ceil(buf.duration*sr),sr);
         const padBuf=offCtx.createBuffer(nch,Math.ceil(buf.duration*sr),sr);
         for(let c=0;c<buf.numberOfChannels;c++)padBuf.copyToChannel(buf.getChannelData(c),c);
@@ -940,8 +929,7 @@ export default class StemTab {
 
     setP(46,'Building mix graph…');
     const offCtx=new OfflineAudioContext(2,Math.ceil(dur*sr),sr),mixBus=offCtx.createGain();
-    for(const{s:st,buf:rawBuf}of processed){
-      const buf=rawBuf.sampleRate!==sr?await _resampleBuf(rawBuf,sr):rawBuf;
+    for(const{s:st,buf}of processed){
       const padLen=Math.ceil(dur*sr),padBuf=offCtx.createBuffer(Math.max(buf.numberOfChannels,2),padLen,sr);
       for(let c=0;c<buf.numberOfChannels;c++){const dst=padBuf.getChannelData(c),src2=buf.getChannelData(c);dst.set(src2.subarray(0,Math.min(src2.length,padLen)));}
       if(buf.numberOfChannels===1)padBuf.copyToChannel(padBuf.getChannelData(0),1);
@@ -979,23 +967,11 @@ export default class StemTab {
     const air=offCtx.createBiquadFilter();air.type='highshelf';air.frequency.value=10000;air.gain.value=s.eqEnabled?s.eq.air:0;
     const comp=offCtx.createDynamicsCompressor();if(s.compEnabled){comp.threshold.value=s.comp.thr;comp.ratio.value=s.comp.rat;comp.attack.value=s.comp.atk/1000;comp.release.value=s.comp.rel/1000;comp.knee.value=6;}
     const mute=offCtx.createGain();mute.gain.value=this._effMute(s)?0:1;
-    srcNode.connect(vol);vol.connect(pan);pan.connect(hpf);hpf.connect(low);low.connect(prs);prs.connect(air);air.connect(comp);
-    if(s.reverb>0){
-      const rv=s.reverb/100;
-      const irLen=Math.floor(1.8*offCtx.sampleRate),ir=offCtx.createBuffer(2,irLen,offCtx.sampleRate);
-      for(let c=0;c<2;c++){const d=ir.getChannelData(c);for(let i=0;i<irLen;i++)d[i]=(Math.random()*2-1)*Math.pow(Math.max(0,1-i/irLen),2.5);}
-      const conv=offCtx.createConvolver();conv.buffer=ir;
-      const dry=offCtx.createGain();dry.gain.value=1-rv;
-      const wet=offCtx.createGain();wet.gain.value=rv*0.8;
-      const mix=offCtx.createGain();mix.gain.value=1;
-      comp.connect(dry);comp.connect(conv);dry.connect(mix);conv.connect(wet);wet.connect(mix);mix.connect(mute);
-    } else {
-      comp.connect(mute);
-    }
+    srcNode.connect(vol);vol.connect(pan);pan.connect(hpf);hpf.connect(low);low.connect(prs);prs.connect(air);air.connect(comp);comp.connect(mute);
     return mute;
   }
   _offMasterBus(offCtx,inputNode,limOn) {
-    const gv=(id,def=0)=>{const el=document.getElementById(id);return el?parseFloat(el.value):def;};
+    const gv=id=>{const el=document.getElementById(id);return el?parseFloat(el.value):0;};
     const hpf=offCtx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=80;hpf.Q.value=0.707;
     const sub=offCtx.createBiquadFilter();sub.type='lowshelf';sub.frequency.value=60;sub.gain.value=gv('smt-sub');
     const bass=offCtx.createBiquadFilter();bass.type='peaking';bass.frequency.value=200;bass.Q.value=1;bass.gain.value=gv('smt-bass');
@@ -1004,7 +980,7 @@ export default class StemTab {
     const dm=offCtx.createBiquadFilter();dm.type='peaking';dm.frequency.value=300;dm.Q.value=1.5;dm.gain.value=-(gv('smt-demud')/100)*10;
     const pr=offCtx.createBiquadFilter();pr.type='peaking';pr.frequency.value=3500;pr.Q.value=1.2;pr.gain.value=gv('smt-pres');
     const ar=offCtx.createBiquadFilter();ar.type='highshelf';ar.frequency.value=12000;ar.gain.value=gv('smt-air');
-    const comp=offCtx.createDynamicsCompressor();comp.threshold.value=gv('smt-thr',-18);comp.ratio.value=gv('smt-rat',4);comp.attack.value=gv('smt-atk',10)/1000;comp.release.value=gv('smt-rel',100)/1000;comp.knee.value=6;
+    const comp=offCtx.createDynamicsCompressor();comp.threshold.value=gv('smt-thr');comp.ratio.value=gv('smt-rat');comp.attack.value=gv('smt-atk')/1000;comp.release.value=gv('smt-rel')/1000;comp.knee.value=6;
     const lim=offCtx.createDynamicsCompressor();lim.threshold.value=limOn?-1:0;lim.ratio.value=limOn?20:1;lim.attack.value=limOn?0.001:0;lim.release.value=limOn?0.05:0;lim.knee.value=0;
     const out=offCtx.createGain();out.gain.value=Math.pow(10,gv('smt-gain')/20);
     inputNode.connect(hpf);hpf.connect(sub);sub.connect(bass);bass.connect(mid);mid.connect(hi);hi.connect(dm);dm.connect(pr);pr.connect(ar);ar.connect(comp);comp.connect(lim);lim.connect(out);out.connect(offCtx.destination);

@@ -50,23 +50,11 @@ export function encodeWAV(audioBuffer, bitDepth) {
   writeString(v, 36, 'data');
   v.setUint32(40, dataSize, true);
 
-  // Peak scan — normalize if signal exceeds 0.99 FS to prevent hard clipping
-  let _peak = 0;
-  for (let c = 0; c < nch; c++) {
-    const data = audioBuffer.getChannelData(c);
-    for (let i = 0; i < n; i++) {
-      const a = Math.abs(data[i]);
-      if (a > _peak) _peak = a;
-    }
-  }
-  if (_peak > 1.0) console.warn(`SONIQ export: peak ${_peak.toFixed(3)} exceeded 1.0 — normalization applied`);
-  const normGain = _peak > 0.99 ? 0.99 / _peak : 1.0;
-
   // Interleaved sample data
   let off = 44;
   for (let i = 0; i < n; i++) {
     for (let c = 0; c < nch; c++) {
-      const s = Math.max(-1, Math.min(1, audioBuffer.getChannelData(c)[i] * normGain));
+      const s = Math.max(-1, Math.min(1, audioBuffer.getChannelData(c)[i]));
       if (bitDepth === 16) {
         v.setInt16(off, Math.round(s * 32767), true);
         off += 2;

@@ -86,16 +86,15 @@ export default class Exporter {
     if (!ready.length) throw new Error('No stems with loaded audio');
 
     const limOn   = masterSettings.toggles?.limiter ?? true;
-    const sr      = ready.length ? Math.max(...ready.map(s => stemBuffers.get(s.id).sampleRate)) : 44100;
+    const sr      = ready[0] ? stemBuffers.get(ready[0].id).sampleRate : 44100;
     const dur     = Math.max(...ready.map(s => stemBuffers.get(s.id).duration));
     const widthW  = (masterSettings.sliders?.['stereo-width'] ?? 100) / 100;
 
     const stemBlobs = [];
 
     for (let i = 0; i < ready.length; i++) {
-      const s      = ready[i];
-      const rawBuf = stemBuffers.get(s.id);
-      const buf    = rawBuf.sampleRate !== sr ? await _resampleBuf(rawBuf, sr) : rawBuf;
+      const s   = ready[i];
+      const buf = stemBuffers.get(s.id);
       onProgress?.((i / ready.length) * 90, `Encoding ${s.name}… (${i + 1}/${ready.length})`);
 
       const nch    = Math.max(buf.numberOfChannels, 2);
@@ -123,8 +122,7 @@ export default class Exporter {
     const offCtx = new OfflineAudioContext(nch, Math.ceil(dur * sr), sr);
     const mixBus = offCtx.createGain();
     for (const s of ready) {
-      const rawBuf = stemBuffers.get(s.id);
-      const buf    = rawBuf.sampleRate !== sr ? await _resampleBuf(rawBuf, sr) : rawBuf;
+      const buf    = stemBuffers.get(s.id);
       const padBuf = _padBuffer(offCtx, buf, Math.max(buf.numberOfChannels, 2), Math.ceil(dur * sr), sr);
       const src    = offCtx.createBufferSource();
       src.buffer   = padBuf;
@@ -257,17 +255,6 @@ function _applyNoiseGate(buf) {
       if (env < thresh) d[i] *= Math.max(0, env / thresh);
     }
   }
-}
-
-/** Resample an AudioBuffer to targetSR via OfflineAudioContext. */
-async function _resampleBuf(buf, targetSR) {
-  const len = Math.round(buf.length * targetSR / buf.sampleRate);
-  const off = new OfflineAudioContext(buf.numberOfChannels, len, targetSR);
-  const src = off.createBufferSource();
-  src.buffer = buf;
-  src.connect(off.destination);
-  src.start(0);
-  return off.startRendering();
 }
 
 /** Pad (or trim) a buffer to `len` samples, upmixing mono→stereo as needed. */
