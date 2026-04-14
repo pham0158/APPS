@@ -86,15 +86,30 @@ export default class Exporter {
     if (!ready.length) throw new Error('No stems with loaded audio');
 
     const limOn   = masterSettings.toggles?.limiter ?? true;
-    const sr      = ready[0] ? stemBuffers.get(ready[0].id).sampleRate : 44100;
-    const dur     = Math.max(...ready.map(s => stemBuffers.get(s.id).duration));
+    const sr      = this._engine.context.sampleRate;
     const widthW  = (masterSettings.sliders?.['stereo-width'] ?? 100) / 100;
 
+    // Pre-resample all stems to sr — avoids relying on OfflineAudioContext
+    // auto-resampling which is inconsistent across browsers.
+    const resampled = new Map();
+    for (const s of ready) {
+      let buf = stemBuffers.get(s.id);
+      if (buf.sampleRate !== sr) {
+        const len = Math.round(buf.length * sr / buf.sampleRate);
+        const rsCtx = new OfflineAudioContext(buf.numberOfChannels, len, sr);
+        const rsSrc = rsCtx.createBufferSource(); rsSrc.buffer = buf;
+        rsSrc.connect(rsCtx.destination); rsSrc.start(0);
+        buf = await rsCtx.startRendering();
+      }
+      resampled.set(s.id, buf);
+    }
+
+    const dur     = Math.max(...ready.map(s => resampled.get(s.id).duration));
     const stemBlobs = [];
 
     for (let i = 0; i < ready.length; i++) {
       const s   = ready[i];
-      const buf = stemBuffers.get(s.id);
+      const buf = resampled.get(s.id);
       onProgress?.((i / ready.length) * 90, `Encoding ${s.name}… (${i + 1}/${ready.length})`);
 
       const nch    = Math.max(buf.numberOfChannels, 2);
@@ -121,7 +136,7 @@ export default class Exporter {
     const offCtx = new OfflineAudioContext(nch, Math.ceil(dur * sr), sr);
     const mixBus = offCtx.createGain();
     for (const s of ready) {
-      const buf    = stemBuffers.get(s.id);
+      const buf    = resampled.get(s.id);
       const src    = offCtx.createBufferSource();
       src.buffer   = buf;
       const out    = _buildOfflineStemChain(offCtx, s, src);

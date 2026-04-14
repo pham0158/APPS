@@ -900,7 +900,20 @@ export default class StemTab {
     }
 
     const limOn=this._q('smt-limiter')?.classList.contains('on')??true;
-    const sr=processed[0]?.buf.sampleRate??44100;
+    const sr=this._ctx.sampleRate;
+
+    // Explicitly resample any stem not at sr — mirrors how v7 works (decodeAudioData
+    // always produces buffers at audioCtx.sampleRate, so no cross-rate issue there).
+    // Relying on OfflineAudioContext auto-resampling is not consistent across browsers.
+    for(const p of processed){
+      if(p.buf.sampleRate!==sr){
+        const len=Math.round(p.buf.length*sr/p.buf.sampleRate);
+        const rsCtx=new OfflineAudioContext(p.buf.numberOfChannels,len,sr);
+        const rsSrc=rsCtx.createBufferSource();rsSrc.buffer=p.buf;rsSrc.connect(rsCtx.destination);rsSrc.start(0);
+        p.buf=await rsCtx.startRendering();
+      }
+    }
+
     const dur=Math.max(...processed.map(x=>x.buf.duration));
     const widthW=parseFloat(document.getElementById('smt-width')?.value??100)/100;
 
