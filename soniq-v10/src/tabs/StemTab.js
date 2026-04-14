@@ -972,7 +972,7 @@ export default class StemTab {
     const low=offCtx.createBiquadFilter();low.type='lowshelf';low.frequency.value=200;low.gain.value=s.eqEnabled?s.eq.bass:0;
     const prs=offCtx.createBiquadFilter();prs.type='peaking';prs.frequency.value=3000;prs.Q.value=1;prs.gain.value=s.eqEnabled?s.eq.pres:0;
     const air=offCtx.createBiquadFilter();air.type='highshelf';air.frequency.value=10000;air.gain.value=s.eqEnabled?s.eq.air:0;
-    const comp=offCtx.createDynamicsCompressor();if(s.compEnabled){comp.threshold.value=s.comp.thr;comp.ratio.value=s.comp.rat;comp.attack.value=s.comp.atk/1000;comp.release.value=s.comp.rel/1000;comp.knee.value=6;}
+    const comp=offCtx.createDynamicsCompressor();if(s.compEnabled){comp.threshold.value=s.comp.thr;comp.ratio.value=s.comp.rat;comp.attack.value=s.comp.atk/1000;comp.release.value=s.comp.rel/1000;comp.knee.value=6;}else{comp.threshold.value=0;comp.ratio.value=1;comp.attack.value=0;comp.release.value=0;}
     const mute=offCtx.createGain();mute.gain.value=this._effMute(s)?0:1;
     srcNode.connect(vol);vol.connect(pan);pan.connect(hpf);hpf.connect(low);low.connect(prs);prs.connect(air);air.connect(comp);comp.connect(mute);
     return mute;

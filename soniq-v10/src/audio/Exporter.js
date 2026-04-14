@@ -306,6 +306,9 @@ function _buildOfflineStemChain(offCtx, s, srcNode) {
     comp.attack.value    = s.comp.atk / 1000;
     comp.release.value   = s.comp.rel / 1000;
     comp.knee.value      = 6;
+  } else {
+    comp.threshold.value = 0; comp.ratio.value = 1;
+    comp.attack.value    = 0; comp.release.value = 0;
   }
 
   const mute = offCtx.createGain();
