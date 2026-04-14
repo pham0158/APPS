@@ -331,4 +331,7 @@ canvas { width:100%; border-radius:var(--radius-sm); background:var(--bg-input);
 /* Responsive */
 @media(max-width:600px){
   .lufs-number{font-size:22px;}
+  .lufs-values{gap:14px;}
+  .meters-row{flex-direction:column;}
+  .lufs-panel,.peak-panel{flex:unset;width:100%;}
 }

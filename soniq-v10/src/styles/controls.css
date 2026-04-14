@@ -192,3 +192,9 @@ input[type="range"].seekbar::-moz-range-thumb {
   .divider{display:none;}
   .download-group{flex-wrap:wrap;}
 }
+@media(max-width:480px){
+  .btn-primary{width:100%;}
+  .action-bar{flex-direction:column;align-items:stretch;}
+  .download-group{justify-content:stretch;}
+  .btn-dl{flex:1;justify-content:center;}
+}

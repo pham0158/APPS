@@ -11,7 +11,7 @@ import ResetButtons from '../ui/ResetButtons.js';
 import Denoise      from '../audio/Denoise.js';
 import { formatSlider, dbToGain } from '../utils/format.js';
 import { encodeWAV, downloadBlob } from '../utils/wav.js';
-import { DEFAULT_STATE } from '../utils/storage.js';
+import { DEFAULT_STATE, saveState, STORAGE_KEY } from '../utils/storage.js';
 
 const SLIDER_IDS = [
   'eq-sub','eq-bass','eq-mid','eq-highs','eq-presence','eq-air','eq-demud',
@@ -117,6 +117,7 @@ export default class MasterTab {
     this._initSliders();
     this._initToggles();
     this._initActionBar();
+    this._initResetAll();
     this._initKeyboard();
     this._initResizeObserver();
     this._updateActionBar();
@@ -427,11 +428,11 @@ export default class MasterTab {
 
   <!-- Action Bar -->
   <div class="action-bar">
-    <button class="btn btn-primary" id="enhanceBtn" disabled>
+    <button class="btn btn-primary" id="enhanceBtn" disabled data-tip="Apply the full mastering chain: EQ, compression, stereo widening, limiting, and optional AI denoise. Processing runs offline in your browser — no upload needed.">
       <span class="btn-icon">⚡</span>Enhance
     </button>
     <div class="divider"></div>
-    <button class="btn btn-secondary" id="playBtn" disabled>
+    <button class="btn btn-secondary" id="playBtn" disabled data-tip="Preview your audio. Plays the mastered version after enhancing, or the original before. Use A/B Compare during playback to flip between them.">
       <span class="play-btn-icon">▶</span>
       <span class="play-btn-text">Preview</span>
     </button>
@@ -440,8 +441,8 @@ export default class MasterTab {
     </button>
     <div class="divider"></div>
     <div class="download-group">
-      <button class="btn-dl" id="dl16Btn" disabled><span>⬇</span> 16-bit WAV</button>
-      <button class="btn-dl" id="dl24Btn" disabled><span>⬇</span> 24-bit WAV</button>
+      <button class="btn-dl" id="dl16Btn" disabled data-tip="Download the mastered audio as a 16-bit WAV. Good for streaming distribution and general use. Smaller file size than 24-bit."><span>⬇</span> 16-bit WAV</button>
+      <button class="btn-dl" id="dl24Btn" disabled data-tip="Download the mastered audio as a 24-bit WAV. Full studio quality — recommended for archiving, further mixing, or mastering submission. Keyboard shortcut: D"><span>⬇</span> 24-bit WAV</button>
     </div>
   </div>
 
@@ -613,6 +614,7 @@ export default class MasterTab {
         this._syncAESlider(id, +el.value);
         this._activePreset = null;
         this._presets.clearActive();
+        this._save();
       });
     });
   }
@@ -684,6 +686,7 @@ export default class MasterTab {
         if (id === 'limiter') this._ae.limiter.setEnabled(this._toggles.limiter);
         this._activePreset = null;
         this._presets.clearActive();
+        this._save();
       };
       el.addEventListener('click', toggle);
       el.addEventListener('keydown', e => {
@@ -702,6 +705,7 @@ export default class MasterTab {
     if (id === 'limiter') this._ae.limiter.setEnabled(defaultOn);
     this._activePreset = null;
     this._presets.clearActive();
+    this._save();
   }
 
   // ── Presets ──────────────────────────────────────────────────────────────────
@@ -724,6 +728,7 @@ export default class MasterTab {
     });
     this._ae.limiter.setEnabled(!!this._toggles.limiter);
     this._activePreset = name;
+    this._save();
   }
 
   // ── Reset Handlers ───────────────────────────────────────────────────────────
@@ -750,6 +755,7 @@ export default class MasterTab {
     });
     this._activePreset = null;
     this._presets.clearActive();
+    this._save();
   }
 
   _initResetAll() {
@@ -773,6 +779,7 @@ export default class MasterTab {
       this._ae.limiter.setEnabled(true);
       this._activePreset = null;
       this._presets.clearActive();
+      this._save();
       this._setStatus('Settings reset to defaults', true);
     });
   }
@@ -1420,4 +1427,7 @@ export default class MasterTab {
   }
 
   _sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  /** Persist current slider/toggle/preset state to localStorage. */
+  _save() { saveState(STORAGE_KEY, this.getState()); }
 }

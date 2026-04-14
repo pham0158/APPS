@@ -9,6 +9,7 @@ import TabManager  from './ui/TabManager.js';
 import HelpPanel   from './ui/HelpPanel.js';
 import MasterTab   from './tabs/MasterTab.js';
 import StemTab from './tabs/StemTab.js';
+import { loadState, STORAGE_KEY } from './utils/storage.js';
 
 // ─── App Shell HTML ───────────────────────────────────────────────────────────
 function renderShell() {
@@ -109,6 +110,7 @@ function init() {
   tabMasterPane.appendChild(masterEl);
 
   masterTab.init();
+  masterTab.loadState(loadState(STORAGE_KEY));
 
   // ── Stem Tab ──────────────────────────────────────────────────────────────
   const stemTab = new StemTab(audioEngine);
