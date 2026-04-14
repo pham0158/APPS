@@ -901,19 +901,6 @@ export default class StemTab {
 
     const limOn=this._q('smt-limiter')?.classList.contains('on')??true;
     const sr=this._ctx.sampleRate;
-
-    // Explicitly resample any stem not at sr — mirrors how v7 works (decodeAudioData
-    // always produces buffers at audioCtx.sampleRate, so no cross-rate issue there).
-    // Relying on OfflineAudioContext auto-resampling is not consistent across browsers.
-    for(const p of processed){
-      if(p.buf.sampleRate!==sr){
-        const len=Math.round(p.buf.length*sr/p.buf.sampleRate);
-        const rsCtx=new OfflineAudioContext(p.buf.numberOfChannels,len,sr);
-        const rsSrc=rsCtx.createBufferSource();rsSrc.buffer=p.buf;rsSrc.connect(rsCtx.destination);rsSrc.start(0);
-        p.buf=await rsCtx.startRendering();
-      }
-    }
-
     const dur=Math.max(...processed.map(x=>x.buf.duration));
     const widthW=parseFloat(document.getElementById('smt-width')?.value??100)/100;
 
@@ -923,7 +910,7 @@ export default class StemTab {
       for(let i=0;i<processed.length;i++){
         const{s,buf}=processed[i]; setP(42+(i/processed.length)*52,`Encoding ${s.name}… (${i+1}/${processed.length})`);
         const nch=Math.max(buf.numberOfChannels,2),offCtx=new OfflineAudioContext(nch,Math.ceil(buf.duration*sr),sr);
-        const src=offCtx.createBufferSource();src.buffer=buf;
+        const src=offCtx.createBufferSource();src.buffer=buf;src.playbackRate.value=buf.sampleRate/sr;
         const out=this._offStemChain(offCtx,s,src);const mi=offCtx.createGain();out.connect(mi);this._offMasterBus(offCtx,mi,limOn);src.start(0);
         let rendered=await offCtx.startRendering();_stereoWidth(rendered,widthW);
         const blob=encodeWAV(rendered,bitDepth);zip.file(`${s.name}_${bitDepth}bit.wav`,await blob.arrayBuffer());
@@ -940,7 +927,7 @@ export default class StemTab {
     setP(46,'Building mix graph…');
     const offCtx=new OfflineAudioContext(2,Math.ceil(dur*sr),sr),mixBus=offCtx.createGain();
     for(const{s:st,buf}of processed){
-      const src=offCtx.createBufferSource();src.buffer=buf;this._offStemChain(offCtx,st,src).connect(mixBus);src.start(0);
+      const src=offCtx.createBufferSource();src.buffer=buf;src.playbackRate.value=buf.sampleRate/sr;this._offStemChain(offCtx,st,src).connect(mixBus);src.start(0);
     }
     this._offMasterBus(offCtx,mixBus,limOn);
     setP(52,'Rendering…'); let rendered=await offCtx.startRendering();
