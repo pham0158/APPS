@@ -406,6 +406,65 @@ const LeaderboardTable = ({ lb }: { lb: Stats[] }) => (
   </div>
 );
 
+// ── MATCH HISTORY (per-match records, grouped by round) ───────────────────────
+const nameFor = (players: Player[], id: string) => players.find(p=>p.id===id)?.name || "?";
+
+const MatchHistoryList = ({ matches, players }: { matches: Record<string,MatchRecord>; players: Player[] }) => {
+  const list = Object.values(matches);
+  if (list.length === 0) {
+    return <div style={{ color:"#aaa", textAlign:"center", padding:20 }}>No match records for this tournament.</div>;
+  }
+  const byRound = new Map<number, MatchRecord[]>();
+  list.forEach(m => { byRound.set(m.roundNum, [...(byRound.get(m.roundNum)||[]), m]); });
+  const roundNums = [...byRound.keys()].sort((a,b)=>a-b); // oldest round first
+
+  return (
+    <div>
+      {roundNums.map(rn => {
+        const roundMatches = [...byRound.get(rn)!].sort((a,b) =>
+          a.courtNum - b.courtNum ||
+          Number(a.isSubRound) - Number(b.isSubRound) ||
+          (a.subLabel||"").localeCompare(b.subLabel||"")
+        );
+        return (
+          <div key={rn} style={{ marginBottom:18 }}>
+            <div style={{
+              fontWeight:800, color:C.dark, fontSize:12, letterSpacing:1,
+              marginBottom:8, paddingBottom:6, borderBottom:`2px solid ${C.gray}`,
+            }}>
+              ROUND {rn}
+            </div>
+            {roundMatches.map(m => (
+              <div key={m.key} style={{
+                display:"flex", alignItems:"center", justifyContent:"space-between", gap:10,
+                padding:"9px 12px", marginBottom:6, borderRadius:8,
+                background: m.isSubRound ? C.yellowLight : C.gray,
+                borderLeft: m.isSubRound ? `3px solid ${C.orange}` : "3px solid transparent",
+              }}>
+                <div style={{ fontSize:12, fontWeight:700, color:m.isSubRound?C.orange:"#888", minWidth:96 }}>
+                  Court {m.courtNum}{m.isSubRound && <span> · {m.subLabel}</span>}
+                </div>
+                <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:8, fontSize:13, flexWrap:"wrap" }}>
+                  <span style={{ fontWeight: m.s1>m.s2?800:500, color: m.s1>m.s2?C.green:C.dark, textAlign:"right" }}>
+                    {m.team1.map(id=>nameFor(players,id)).join(" & ")}
+                  </span>
+                  <span style={{ fontWeight:900, color:"#ccc", fontSize:11 }}>vs</span>
+                  <span style={{ fontWeight: m.s2>m.s1?800:500, color: m.s2>m.s1?C.green:C.dark }}>
+                    {m.team2.map(id=>nameFor(players,id)).join(" & ")}
+                  </span>
+                </div>
+                <div style={{ fontWeight:900, fontSize:14, color:C.dark, minWidth:54, textAlign:"right" }}>
+                  {m.s1} — {m.s2}
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ── SCORE CARD ────────────────────────────────────────────────────────────────
 function CourtCard({
   court, scoreKey, scores, groupColor, label, onScoreChange, onSubmit, onEdit,
@@ -1340,6 +1399,10 @@ export default function App() {
                 <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001", marginBottom:16 }}>
                   <div style={{ fontWeight:800, color:C.dark, fontSize:15, marginBottom:12 }}>🏆 Final Standings</div>
                   <LeaderboardTable lb={selectedHistory.leaderboard}/>
+                </div>
+                <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001", marginBottom:16 }}>
+                  <div style={{ fontWeight:800, color:C.dark, fontSize:15, marginBottom:12 }}>🏓 Match History</div>
+                  <MatchHistoryList matches={selectedHistory.matches||{}} players={selectedHistory.players}/>
                 </div>
                 <div style={{ background:"#fff", borderRadius:12, padding:20, boxShadow:"0 2px 8px #0001" }}>
                   <div style={{ fontWeight:800, color:C.dark, fontSize:14, marginBottom:12 }}>👥 Players ({selectedHistory.players.length})</div>

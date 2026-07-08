@@ -45,3 +45,19 @@ Since QA already builds straight from `src/App.tsx`, **v4 work starts by just ed
 **Not done in this phase (by design):** no History tab UI changes — that's Phase 2. `App.tsx` was verified with `npx vite build` (what CI actually runs) — clean build, no new errors. `tsc -b` (`npm run build`'s type-check step) has 2 pre-existing, unrelated errors in this file (`THEMES`/`C_BASE` self-referential typing) and a long list of pre-existing implicit-`any` errors in `AppV1.tsx` — confirmed via `git stash` that all of these predate this change and aren't part of the CI build (CI calls `vite build` directly, not `tsc -b`).
 
 **Next step:** Phase 2 — build the History tab UI to read `SavedTournament.matches` and render match-by-match history grouped by round, additive alongside the existing summary/ranking view. (Ordering — newest/oldest-first — to be confirmed before implementation.) Then Phase 3 — score confirmation checkbox.
+
+## Phase 2 — History tab match-by-match UI (2026-07-08)
+
+**Goal:** Show the full match-by-match history for a completed tournament in the History tab, additive alongside the existing Final Standings/summary card (kept exactly as-is).
+
+**What changed (`src/App.tsx` only, additive):**
+- New `MatchHistoryList` component (placed next to `LeaderboardTable`, follows the same conventions — reads the module-level `C` theme directly, no props for styling). Takes `matches: Record<string,MatchRecord>` and `players: Player[]`.
+- Groups `Object.values(matches)` by `roundNum` into a `Map`, then sorts round numbers **ascending** (Round 1 first, most recent round last — chronological oldest-first, per this phase's explicit instruction).
+- Within a round, sorts matches by `courtNum` ascending, with main-court matches before any "Next Game" sub-round matches for that same court (sub-rounds ordered after, by `subLabel`), so a court's original game and its extra games stay together and in order.
+- Each match row shows: court number (+ sub-round label like "2a" with an orange accent/left-border for sub-rounds, matching the orange "⚡ Extra" styling already used in `CourtCard`), both teams' player names resolved from `players` via ids, and the final score — with the winning team's names bolded/green, same visual convention as `CourtCard`.
+- Wired in via a new "🏓 Match History" card inserted between the existing "🏆 Final Standings" card and the "👥 Players" card in the History tab's detail view (`mainTab==="history"` → `selectedHistory` branch). The Final Standings card's JSX is untouched.
+- Data comes directly from `selectedHistory.matches` (the field Phase 1 populates in `pb3_history` via `endTournament`) — nothing is recomputed from `scores`/`leaderboard`. Read with a `selectedHistory.matches||{}` fallback so tournaments saved before Phase 1 (which have no `matches` field) render "No match records for this tournament." instead of crashing, rather than fabricating history for them.
+
+**Verification this phase:** `npx vite build` (the command CI actually runs) builds clean. `npx eslint src/App.tsx` reports the same 14 problems as after Phase 1 — no new lint issues introduced. No manual/browser testing was done in this session (per instructions, that's the user's job on `pickleball-qa/` with a throwaway tournament).
+
+**Next step:** Phase 3 — score confirmation checkbox.
