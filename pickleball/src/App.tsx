@@ -138,7 +138,7 @@ interface Round {
 }
 
 interface Score { s1: string; s2: string; done: boolean; }
-interface Stats { id: string; name: string; wins: number; points: number; played: number; }
+interface Stats { id: string; name: string; wins: number; losses: number; points: number; played: number; }
 
 // A MatchRecord is the permanent, immutable-once-written record of a completed
 // game. Keyed the same way as Score (`${roundIdx}-${courtIdx}` for main courts,
@@ -335,7 +335,7 @@ function computeLeaderboard(
   scores: Record<string,Score>, subScores: Record<string,Score>
 ): Stats[] {
   const stats: Record<string, Stats> = {};
-  players.forEach(p => { stats[p.id] = { id:p.id, name:p.name, wins:0, points:0, played:0 }; });
+  players.forEach(p => { stats[p.id] = { id:p.id, name:p.name, wins:0, losses:0, points:0, played:0 }; });
 
   rounds.forEach((round, ri) => {
     round.courts.forEach((court, ci) => {
@@ -343,16 +343,16 @@ function computeLeaderboard(
       if (!sc?.done) return;
       const s1 = parseInt(sc.s1), s2 = parseInt(sc.s2);
       [...court.team1,...court.team2].forEach(id => { if(stats[id]) stats[id].played++; });
-      court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; });
-      court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; });
+      court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; else if(s1<s2) stats[id].losses++; });
+      court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; else if(s2<s1) stats[id].losses++; });
     });
     (round.subRounds||[]).forEach(sub => {
       const sc = subScores[sub.id];
       if (!sc?.done) return;
       const s1 = parseInt(sc.s1), s2 = parseInt(sc.s2);
       [...sub.court.team1,...sub.court.team2].forEach(id => { if(stats[id]) stats[id].played++; });
-      sub.court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; });
-      sub.court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; });
+      sub.court.team1.forEach(id => { if(!stats[id]) return; stats[id].points+=s1; if(s1>s2) stats[id].wins++; else if(s1<s2) stats[id].losses++; });
+      sub.court.team2.forEach(id => { if(!stats[id]) return; stats[id].points+=s2; if(s2>s1) stats[id].wins++; else if(s2<s1) stats[id].losses++; });
     });
   });
 
@@ -381,14 +381,14 @@ function Badge({ color, children }: { color: string; children: React.ReactNode }
 
 const LeaderboardTable = ({ lb }: { lb: Stats[] }) => (
   <div>
-    <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px", gap:6, marginBottom:8 }}>
-      {["#","Player","Wins","Pts","Played"].map(h=>(
+    <div style={{ display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px 60px", gap:6, marginBottom:8 }}>
+      {["#","Player","Wins","L","Pts","Played"].map(h=>(
         <div key={h} style={{ fontSize:11, fontWeight:700, color:"#aaa", textAlign:h==="Player"?"left":"center" }}>{h}</div>
       ))}
     </div>
     {lb.map((p,i)=>(
       <div key={p.id} style={{
-        display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px", gap:6,
+        display:"grid", gridTemplateColumns:"32px 1fr 60px 60px 60px 60px", gap:6,
         alignItems:"center", padding:"9px 0", borderTop:`1px solid ${C.gray}`,
         background:i===0?C.yellowLight:i<3?C.greenLight:"transparent",
         borderRadius:8, paddingLeft:8
@@ -398,6 +398,7 @@ const LeaderboardTable = ({ lb }: { lb: Stats[] }) => (
         </div>
         <div style={{ fontWeight:700, color:C.dark }}>{p.name}</div>
         <div style={{ textAlign:"center", fontWeight:700, color:C.green }}>{p.wins}</div>
+        <div style={{ textAlign:"center", color:"#aaa" }}>{p.losses}</div>
         <div style={{ textAlign:"center", color:"#555" }}>{p.points}</div>
         <div style={{ textAlign:"center", color:"#aaa", fontSize:13 }}>{p.played}</div>
       </div>

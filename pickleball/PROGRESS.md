@@ -61,3 +61,13 @@ Since QA already builds straight from `src/App.tsx`, **v4 work starts by just ed
 **Verification this phase:** `npx vite build` (the command CI actually runs) builds clean. `npx eslint src/App.tsx` reports the same 14 problems as after Phase 1 — no new lint issues introduced. No manual/browser testing was done in this session (per instructions, that's the user's job on `pickleball-qa/` with a throwaway tournament).
 
 **Next step:** Phase 3 — score confirmation checkbox.
+
+## Losses column in Final Standings (2026-07-08)
+
+**What changed (`src/App.tsx` only, additive):** Added an "L" (Losses) column to the Final Standings table, between the existing "Wins" and "Pts" columns.
+
+- `Stats` gained a `losses: number` field.
+- `computeLeaderboard` now increments `losses` symmetrically with how `wins` was already computed: for each completed match (main court or sub-round), a team's players get `+1 loss` when their score is strictly less than the opponent's (`else if(s1<s2)` / `else if(s2<s1)`), mirroring the existing strict `s1>s2`/`s2>s1` win check. This means a tied score (technically enterable via the score inputs, though not realistic for actual pickleball scoring) counts as neither a win nor a loss for either side — consistent with how ties already didn't count as a win before this change. `losses` was **not** derived as `played - wins`, since that would've silently turned a tie into a loss.
+- `LeaderboardTable`'s grid went from 5 to 6 columns (`60px` added) to fit the new "L" header/cell; `Wins`, `Pts`, and `Played` columns/values are unchanged.
+
+**Verification:** `npx vite build` builds clean; `eslint` shows the same 14 pre-existing problems, no new ones.
