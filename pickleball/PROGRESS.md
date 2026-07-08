@@ -87,3 +87,29 @@ Since QA already builds straight from `src/App.tsx`, **v4 work starts by just ed
 **Next step:** none specified yet — awaiting direction for the next phase.
 
 **Verification:** `npx vite build` builds clean; `eslint` shows the same 14 pre-existing problems, no new ones.
+
+## Phase 5 — v4 promoted to Production (2026-07-08)
+
+**Goal:** Ship the tested v4 code (Phase 1 match-record persistence, Phase 2 History tab match-by-match UI, the Losses column, and Phase 3's score confirmation checkbox) to Production at `https://gogreenvue.com/pickleball`, following the same frozen-snapshot versioning pattern already used for v1/v2/v3 — without disturbing `pickleball-v3/` (archived) or `pickleball-qa/` (still tracking live `App.tsx`).
+
+**Pre-promotion investigation (reported and confirmed before any changes):**
+- The bare `pickleball/` path was *not* building from `App.tsx` directly — both the "Build Pickleball stable" step (→ `pickleball/`) and the "Build Pickleball V3" step (→ `pickleball-v3/`) copied `AppV3.tsx` over `App.tsx`, just with different `base` values. They were byte-identical builds under two URLs.
+- `homepage.html` had three hardcoded links to `/pickleball-v3` (nav bar, hero CTA, feature card) — none pointed at the bare `/pickleball` path. This only "worked" because `pickleball/` and `pickleball-v3/` were identical prior to this promotion; left alone, they'd have kept sending visitors to the frozen v3 archive after this change.
+- Regression diff of `AppV3.tsx` vs. the tested `App.tsx` found no correctness issues — round navigation, player management, round generation, and the standings sort order were untouched; all Phase 1–3 additions were defensive/additive. Two non-bug effects were flagged and accepted: pre-Phase-1 `pb3_history` docs have no `matches` field (renders "No match records" gracefully, by design) and the confirm-checkbox is a deliberate UX change affecting every future score submission.
+
+**What changed:**
+- `pickleball/src/AppV4.tsx` created as a frozen snapshot of the tested `App.tsx` (identical byte-for-byte at time of promotion), matching the `AppV1`/`AppV2`/`AppV3` pattern.
+- `.github/workflows/deploy.yml`:
+  - "Build Pickleball stable" (→ `pickleball/`, i.e. Production) now copies `AppV4.tsx` instead of `AppV3.tsx`. `base` stays `/pickleball/`.
+  - New "Build Pickleball V4" step added (copies `AppV4.tsx`, `base: '/pickleball-v4/'`, deploys to `deploy/pickleball-v4/`) — same pattern as the V1/V2/V3 steps, inserted right after "stable" so the file reads QA → stable → V4 → V3 → V2 → V1.
+  - The "Build Pickleball V3" step is **unchanged** — still copies `AppV3.tsx` to `base: '/pickleball-v3/'`, so it stays the frozen archived version.
+- `homepage.html`: the three links previously hardcoded to `/pickleball-v3` (nav bar, hero CTA button, feature card button) now point to `/pickleball` (Production). The feature card's version label was updated from "Version 3 · Multi-Group" to "Version 4 · Multi-Group" (the "Latest Version" badge itself needed no change — it was already version-agnostic). The QA showcase card's link to `/pickleball-qa/` was left untouched.
+- All five parallel builds (QA, stable/Production, V4, V3, V2, V1) were run locally in the same sequence the CI workflow uses, to confirm each one builds cleanly before pushing; `src/App.tsx` and `vite.config.ts` were restored via `git checkout` afterward so the local simulation didn't leak into the commit.
+
+**Verification post-deploy:** Deploy run completed successfully (all steps green, including the new "Build Pickleball V4" step). Confirmed via the published `gh-pages` branch that `pickleball/`, `pickleball-v4/`, and `pickleball-qa/` all now serve the identical v4 JS bundle (same content hash), while `pickleball-v3/`, `pickleball-v2/`, and `pickleball-v1/` kept their pre-existing, unchanged hashes. Confirmed via the live site that all three homepage production links now resolve to `/pickleball`, and the QA card is unaffected. `pickleball-v3/` and `pickleball-qa/` remain live and untouched at their existing URLs.
+
+**Git tag:** `v4.0`, on commit `1648297` ("Promote Pickleball v4 to Production").
+
+**Not done (out of scope for this promotion):** `.github/workflows/monitor.yml`'s health-check route list wasn't updated to add `pickleball-v4` (it already checks `pickleball`, `pickleball-v2`, `pickleball-v3`, `pickleball-qa`, but has never checked `pickleball-v1` either — a pre-existing gap, not something introduced here). Worth a follow-up if `pickleball-v4/` should be monitored going forward.
+
+**Next step:** none specified yet — awaiting direction for the next phase.
