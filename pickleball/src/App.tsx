@@ -140,12 +140,29 @@ interface Round {
 interface Score { s1: string; s2: string; done: boolean; }
 interface Stats { id: string; name: string; wins: number; points: number; played: number; }
 
+// A MatchRecord is the permanent, immutable-once-written record of a completed
+// game. Keyed the same way as Score (`${roundIdx}-${courtIdx}` for main courts,
+// sub.id for sub-rounds) so a resubmission after Edit simply overwrites its entry.
+interface MatchRecord {
+  key: string;
+  roundNum: number;
+  courtNum: number;
+  team1: string[];   // player ids
+  team2: string[];   // player ids
+  s1: number;
+  s2: number;
+  submittedAt: string; // ISO timestamp
+  isSubRound: boolean;
+  subLabel?: string;
+}
+
 interface TournamentState {
   started: boolean;
   rounds: Round[];
   scores: Record<string, Score>;
   currentRound: number;
   subScores: Record<string, Score>; // keyed by subRound.id
+  matches?: Record<string, MatchRecord>; // keyed same as scores/subScores
 }
 
 interface Group {
@@ -166,6 +183,7 @@ interface SavedTournament {
   isPrivate: boolean;
   players: Player[]; rounds: Round[]; scores: Record<string,Score>;
   subScores: Record<string,Score>;
+  matches: Record<string,MatchRecord>;
   leaderboard: Stats[];
 }
 
@@ -464,6 +482,7 @@ function TournamentView({ group, onEnd }: { group: Group; onEnd: ()=>void }) {
   const [currentRound, setCurrentRound] = useState(t.currentRound||0);
   const [scores, setScores] = useState<Record<string,Score>>(t.scores||{});
   const [subScores, setSubScores] = useState<Record<string,Score>>(t.subScores||{});
+  const [matches, setMatches] = useState<Record<string,MatchRecord>>(t.matches||{});
   const [activeTab, setActiveTab] = useState<"courts"|"standings">("courts");
   const players = group.players;
   const nameOf = useCallback((id: string) => players.find(p=>p.id===id)?.name||"?", [players]);
@@ -471,10 +490,11 @@ function TournamentView({ group, onEnd }: { group: Group; onEnd: ()=>void }) {
   useEffect(()=>{ setCurrentRound(t.currentRound||0); },[t.currentRound]);
   useEffect(()=>{ setScores(t.scores||{}); },[JSON.stringify(t.scores)]);
   useEffect(()=>{ setSubScores(t.subScores||{}); },[JSON.stringify(t.subScores)]);
+  useEffect(()=>{ setMatches(t.matches||{}); },[JSON.stringify(t.matches)]);
 
   const saveState = async (
     ns: Record<string,Score>, nss: Record<string,Score>,
-    cr: number, rounds?: Round[]
+    cr: number, rounds?: Round[], nm?: Record<string,MatchRecord>
   ) => {
     await setDoc(doc(db,"pb3_groups",group.id),{
       ...group,
@@ -483,6 +503,7 @@ function TournamentView({ group, onEnd }: { group: Group; onEnd: ()=>void }) {
         rounds: rounds||t.rounds,
         scores:ns,
         subScores:nss,
+        matches: nm||matches,
         currentRound:cr,
       }
     });
@@ -502,13 +523,46 @@ function TournamentView({ group, onEnd }: { group: Group; onEnd: ()=>void }) {
       if (sc.s1===""||sc.s2==="") return;
       const nss = {...subScores, [key]:{...sc, done:true}};
       setSubScores(nss);
-      await saveState(scores, nss, currentRound);
+      const sub = t.rounds.flatMap(r=>r.subRounds||[]).find(s=>s.id===key);
+      const nm: Record<string,MatchRecord> = sub ? {
+        ...matches,
+        [key]: {
+          key,
+          roundNum: t.rounds[sub.parentRoundIdx]?.roundNum ?? sub.parentRoundIdx+1,
+          courtNum: sub.court.courtNum,
+          team1: sub.court.team1,
+          team2: sub.court.team2,
+          s1: parseInt(sc.s1), s2: parseInt(sc.s2),
+          submittedAt: new Date().toISOString(),
+          isSubRound: true,
+          subLabel: sub.subLabel,
+        },
+      } : matches;
+      setMatches(nm);
+      await saveState(scores, nss, currentRound, undefined, nm);
     } else {
       const sc = scores[key]||{s1:"",s2:"",done:false};
       if (sc.s1===""||sc.s2==="") return;
       const ns = {...scores, [key]:{...sc, done:true}};
       setScores(ns);
-      await saveState(ns, subScores, currentRound);
+      const [riStr, ciStr] = key.split("-");
+      const rnd = t.rounds[parseInt(riStr)];
+      const court = rnd?.courts[parseInt(ciStr)];
+      const nm: Record<string,MatchRecord> = court ? {
+        ...matches,
+        [key]: {
+          key,
+          roundNum: rnd.roundNum,
+          courtNum: court.courtNum,
+          team1: court.team1,
+          team2: court.team2,
+          s1: parseInt(sc.s1), s2: parseInt(sc.s2),
+          submittedAt: new Date().toISOString(),
+          isSubRound: false,
+        },
+      } : matches;
+      setMatches(nm);
+      await saveState(ns, subScores, currentRound, undefined, nm);
     }
   };
 
@@ -987,7 +1041,7 @@ export default function App() {
     const rounds = generateRounds(selectedGroup.players, selectedGroup.numCourts);
     await setDoc(doc(db,"pb3_groups",selectedGroup.id), {
       ...selectedGroup,
-      tournament:{started:true, rounds, scores:{}, subScores:{}, currentRound:0}
+      tournament:{started:true, rounds, scores:{}, subScores:{}, matches:{}, currentRound:0}
     });
     setGroupView("tournament");
   };
@@ -1002,11 +1056,11 @@ export default function App() {
       groupId:selectedGroup.id, groupName:selectedGroup.name, location:selectedGroup.location||"",
       isPrivate: selectedGroup.isPrivate||false,
       players:selectedGroup.players, rounds:t.rounds, scores:t.scores,
-      subScores:t.subScores||{}, leaderboard:lb,
+      subScores:t.subScores||{}, matches:t.matches||{}, leaderboard:lb,
     };
     await setDoc(doc(db,"pb3_history",saved.id), saved);
     await setDoc(doc(db,"pb3_groups",selectedGroup.id), {
-      ...selectedGroup, tournament:{started:false,rounds:[],scores:{},subScores:{},currentRound:0}
+      ...selectedGroup, tournament:{started:false,rounds:[],scores:{},subScores:{},matches:{},currentRound:0}
     });
     setGroupView("players"); setMainTab("history"); setSelectedGroupId(null);
   };
