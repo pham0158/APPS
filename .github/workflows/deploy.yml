@@ -26,17 +26,27 @@ jobs:
           mkdir -p ../deploy/pickleball-qa
           cp -r dist/. ../deploy/pickleball-qa/
 
-      # ── PICKLEBALL STABLE (last stable = V3) ─────────────────
+      # ── PICKLEBALL STABLE (last stable = V4) ─────────────────
       - name: Build Pickleball stable
         run: |
           cd pickleball
-          cp src/AppV3.tsx src/App.tsx
+          cp src/AppV4.tsx src/App.tsx
           sed -i "s|base: '.*'|base: '/pickleball/'|" vite.config.ts
           npx vite build
           mkdir -p ../deploy/pickleball
           cp -r dist/. ../deploy/pickleball/
 
-      # ── PICKLEBALL V3 ─────────────────────────────────────────
+      # ── PICKLEBALL V4 ─────────────────────────────────────────
+      - name: Build Pickleball V4
+        run: |
+          cd pickleball
+          cp src/AppV4.tsx src/App.tsx
+          sed -i "s|base: '.*'|base: '/pickleball-v4/'|" vite.config.ts
+          npx vite build
+          mkdir -p ../deploy/pickleball-v4
+          cp -r dist/. ../deploy/pickleball-v4/
+
+      # ── PICKLEBALL V3 (archived) ──────────────────────────────
       - name: Build Pickleball V3
         run: |
           cd pickleball
