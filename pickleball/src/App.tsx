@@ -478,6 +478,10 @@ function CourtCard({
 }) {
   const sc = scores[scoreKey]||{s1:"",s2:"",done:false};
   const winner = sc.done?(parseInt(sc.s1)>parseInt(sc.s2)?1:2):null;
+  const [confirmed, setConfirmed] = useState(false);
+  // Reset the confirm-checkbox whenever this card's done state flips (submit or edit),
+  // so a checked box never carries forward into the next match on this same court.
+  useEffect(()=>{ setConfirmed(false); },[sc.done]);
   return (
     <div style={{
       background:"#fff", borderRadius:12, padding:16, marginBottom:12,
@@ -520,16 +524,24 @@ function CourtCard({
             <Btn small outline color={C.blue} onClick={()=>onEdit(scoreKey)}>Edit</Btn>
           </>
         ):(
-          <>
-            <input type="number" min={0} max={25} value={sc.s1}
-              onChange={e=>onScoreChange(scoreKey,"s1",e.target.value)}
-              placeholder="T1" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
-            <span style={{ fontWeight:900, color:"#aaa" }}>—</span>
-            <input type="number" min={0} max={25} value={sc.s2}
-              onChange={e=>onScoreChange(scoreKey,"s2",e.target.value)}
-              placeholder="T2" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
-            <Btn small onClick={()=>onSubmit(scoreKey)} disabled={sc.s1===""||sc.s2===""} color={C.green}>✓</Btn>
-          </>
+          <div style={{ width:"100%" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, justifyContent:"center", flexWrap:"wrap" }}>
+              <input type="number" min={0} max={25} value={sc.s1}
+                onChange={e=>onScoreChange(scoreKey,"s1",e.target.value)}
+                placeholder="T1" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
+              <span style={{ fontWeight:900, color:"#aaa" }}>—</span>
+              <input type="number" min={0} max={25} value={sc.s2}
+                onChange={e=>onScoreChange(scoreKey,"s2",e.target.value)}
+                placeholder="T2" style={{ width:52, padding:"6px 8px", borderRadius:8, border:`2px solid ${C.grayMid}`, fontSize:17, fontWeight:700, textAlign:"center" }}/>
+              <Btn small onClick={()=>onSubmit(scoreKey)} disabled={sc.s1===""||sc.s2===""||!confirmed} color={C.green}>✓</Btn>
+            </div>
+            <label style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:8, fontSize:12, color:"#666", cursor:"pointer" }}>
+              <input type="checkbox" checked={confirmed}
+                onChange={e=>setConfirmed(e.target.checked)}
+                style={{ width:15, height:15, cursor:"pointer" }}/>
+              I confirm this score is correct
+            </label>
+          </div>
         )}
       </div>
     </div>

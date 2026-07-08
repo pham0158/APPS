@@ -70,4 +70,20 @@ Since QA already builds straight from `src/App.tsx`, **v4 work starts by just ed
 - `computeLeaderboard` now increments `losses` symmetrically with how `wins` was already computed: for each completed match (main court or sub-round), a team's players get `+1 loss` when their score is strictly less than the opponent's (`else if(s1<s2)` / `else if(s2<s1)`), mirroring the existing strict `s1>s2`/`s2>s1` win check. This means a tied score (technically enterable via the score inputs, though not realistic for actual pickleball scoring) counts as neither a win nor a loss for either side — consistent with how ties already didn't count as a win before this change. `losses` was **not** derived as `played - wins`, since that would've silently turned a tie into a loss.
 - `LeaderboardTable`'s grid went from 5 to 6 columns (`60px` added) to fit the new "L" header/cell; `Wins`, `Pts`, and `Played` columns/values are unchanged.
 
+## Phase 3 — score confirmation checkbox (2026-07-08)
+
+**Goal:** Require an explicit "I confirm this score is correct" checkbox before the ✓ submit button on a court's score-entry card becomes clickable, to cut down on accidental/mis-typed score submissions.
+
+**What changed (`src/App.tsx` only, additive):** All of this lives inside `CourtCard` — the single shared component that renders **both** main-court and "Next Game" sub-round score entry (they're the same component, only `isSubRound` differs), so this applies to both flows automatically with no duplicated logic.
+
+- Added local component state: `const [confirmed, setConfirmed] = useState(false);` — purely a UI gate, not persisted anywhere, not part of the `Score`/`MatchRecord` schema.
+- Added `useEffect(()=>{ setConfirmed(false); },[sc.done]);` — resets the checkbox whenever this card's `done` state flips in *either* direction: true after a successful submit (so the next match on this court/sub-round starts unchecked), and also false again when "Edit" is clicked to reopen a submitted score (so re-editing doesn't inherit a stale checked box either). This mirrors the existing `useEffect(...,[JSON.stringify(t.scores)])`-style sync pattern already used in `TournamentView` for `scores`/`subScores`/`matches`.
+- The ✓ button's `disabled` condition gained `|| !confirmed` alongside the existing `sc.s1===""||sc.s2===""` check — unchecking the box after checking it re-disables the button immediately on next render, no extra code needed since `disabled` is recomputed from state every render.
+- Added the checkbox + label ("I confirm this score is correct") below the score-input row, inside a new wrapping `<div style={{width:"100%"}}>` around the entry-mode markup (previously the inputs/button were direct children of the card's single horizontal flex row — a second block-level row was needed to avoid cramming the checkbox into that same line, especially on mobile).
+- **Does not touch** `onSubmit`/`onEdit`/`handleScoreChange`/`submitScore`/`editScore`/`saveState` in `TournamentView`, or the Phase 1 match-record write path, or the edit-and-resubmit (upsert-by-key) behavior — the checkbox is purely a client-side gate on when the existing submit handler *can* be called, nothing about what it does when called.
+
+**Verification:** `npx vite build` builds clean. `eslint` went from 14 → 15 problems: exactly one new error, the same `react-hooks/set-state-in-effect` category already present 3 times elsewhere in this file for the analogous `scores`/`subScores`/`matches` sync effects — not a new category of lint issue, just one more instance of an existing, already-accepted pattern in this codebase. No manual/browser testing done this session (per instructions, that's the user's job on `pickleball-qa/`).
+
+**Next step:** none specified yet — awaiting direction for the next phase.
+
 **Verification:** `npx vite build` builds clean; `eslint` shows the same 14 pre-existing problems, no new ones.
