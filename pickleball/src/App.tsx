@@ -822,7 +822,7 @@ function FeedbackModal({ onClose }: { onClose: ()=>void }) {
     const entry: FeedbackEntry = {
       id: `fb_${Date.now()}`,
       type, rating, message: message.trim(), name: name.trim(),
-      version: "v3",
+      version: "v4",
       submittedAt: new Date().toISOString(),
     };
 
@@ -834,11 +834,11 @@ function FeedbackModal({ onClose }: { onClose: ()=>void }) {
     // 2. Send email notification
     const typeLabel = FEEDBACK_TYPES.find(t=>t.key===type)?.label || type;
     const emailOk = await sendFeedbackEmail({
-      subject:   `[Pickleball V3] ${typeLabel}${rating>0?` — ${rating}/5 stars`:""}`,
+      subject:   `[Pickleball V4] ${typeLabel}${rating>0?` — ${rating}/5 stars`:""}`,
       type:      typeLabel,
       rating:    rating > 0 ? `${"⭐".repeat(rating)} (${rating}/5)` : "Not rated",
       from_name: name.trim() || "Anonymous",
-      version:   "V3",
+      version:   "V4",
       sent_at:   new Date().toLocaleString(),
       message:   message.trim(),
     });
@@ -1291,7 +1291,7 @@ export default function App() {
         <span style={{ fontSize:28 }}>🥒</span>
         <div>
           <div style={{ color:C.yellow, fontWeight:900, fontSize:20, letterSpacing:1 }}>PICKLEBALL</div>
-          <div style={{ color:"#fff", fontSize:11, fontWeight:600, letterSpacing:2 }}>ROUND-ROBIN V3 · MULTI-GROUP</div>
+          <div style={{ color:"#fff", fontSize:11, fontWeight:600, letterSpacing:2 }}>ROUND-ROBIN V4 · MULTI-GROUP</div>
         </div>
         <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:8 }}>
           {groups.filter(g=>g.tournament?.started).length>0&&(

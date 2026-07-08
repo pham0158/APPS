@@ -113,3 +113,15 @@ Since QA already builds straight from `src/App.tsx`, **v4 work starts by just ed
 **Not done (out of scope for this promotion):** `.github/workflows/monitor.yml`'s health-check route list wasn't updated to add `pickleball-v4` (it already checks `pickleball`, `pickleball-v2`, `pickleball-v3`, `pickleball-qa`, but has never checked `pickleball-v1` either — a pre-existing gap, not something introduced here). Worth a follow-up if `pickleball-v4/` should be monitored going forward.
 
 **Next step:** none specified yet — awaiting direction for the next phase.
+
+## Fix stale "V3" labels left over from promotion (2026-07-08)
+
+**What was found:** The v4 promotion (Phase 5) copied `App.tsx` into `AppV4.tsx` verbatim, which meant leftover hardcoded "V3" strings from the original `AppV3.tsx` lineage were carried forward unchanged into the new Production build. Found four occurrences in both `src/App.tsx` and `src/AppV4.tsx` (identical in both, since they're the same snapshot):
+- The header subtitle: `"ROUND-ROBIN V3 · MULTI-GROUP"` (the one reported).
+- Three more in `FeedbackModal.submit()`, not visible in the UI but functionally live: the `FeedbackEntry.version` field written to Firestore (`"v3"`), the outbound EmailJS notification's `subject` line (`[Pickleball V3] ...`), and its `version` template param (`"V3"`). Left as-is, every feedback submission from the now-promoted v4 Production build would have been mislabeled "v3" in both the stored `pb3_feedback` record and the email subject — a data-quality bug on top of the cosmetic one, so it was fixed too even though it's not the header/title/meta/footer the ask named directly.
+
+**What changed:** All four strings updated from "V3"/"v3" to "V4"/"v4" in `src/App.tsx` and `src/AppV4.tsx` only. `src/AppV3.tsx` was explicitly left untouched — confirmed via `git diff --stat` showing zero changes to it, and it still correctly reads "V3" in all four spots, since it's the frozen archive that should keep identifying itself as v3.
+
+**Also checked and ruled out:** `index.html`'s `<title>` ("Pickleball RRA", no version number) and `public/favicon.svg` — neither contains a version string, so nothing to fix there.
+
+**Verification:** Confirmed `App.tsx` and `AppV4.tsx` are still byte-identical after the edit, `AppV3.tsx` has zero diff, and no "V3"/"v3" strings remain in `App.tsx`/`AppV4.tsx`. `npx vite build` builds clean; `eslint` unchanged at 15 problems (same as after Phase 3/promotion — a text-only change, no logic touched).
